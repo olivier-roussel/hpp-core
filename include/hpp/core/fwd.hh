@@ -175,9 +175,11 @@ namespace hpp {
     typedef std::vector <PathPtr_t> Paths_t;
     typedef std::vector <PathVectorPtr_t> PathVectors_t;
     typedef std::vector <PathVectorPtr_t> PathVectors_t;
+    typedef model::vector3_t vector3_t;
     typedef model::vector_t vector_t;
     typedef model::vectorIn_t vectorIn_t;
     typedef model::vectorOut_t vectorOut_t;
+    typedef Eigen::Matrix<value_type, 1, Eigen::Dynamic> rowvector_t;
     typedef boost::shared_ptr <VisibilityPrmPlanner> VisibilityPrmPlannerPtr_t;
     typedef boost::shared_ptr <ValidationReport> ValidationReportPtr_t;
     typedef boost::shared_ptr <WeighedDistance> WeighedDistancePtr_t;

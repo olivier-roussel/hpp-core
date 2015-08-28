@@ -42,6 +42,7 @@ SET(${LIBRARY_NAME}_SOURCES
   nearest-neighbor/k-d-tree.hh
   node.cc
   path.cc
+  path-optimization/collision-constraints-result.hh
   path-optimization/path-length.cc
   path-optimization/gradient-based.cc
   path-planner.cc
@@ -60,6 +61,7 @@ SET(${LIBRARY_NAME}_SOURCES
   path-projector/progressive.cc
   path-projector/dichotomy.cc
   path-projector.cc
+  parser/roadmap-factory.cc
   )
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)

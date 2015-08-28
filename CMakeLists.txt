@@ -91,6 +91,7 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/core/path-projector/dichotomy.hh
   include/hpp/core/path-projector.hh
   include/hpp/core/nearest-neighbor.hh
+  include/hpp/core/parser/roadmap-factory.hh
   )
 
 ADD_REQUIRED_DEPENDENCY("hpp-util >= 3")
@@ -103,5 +104,8 @@ PKG_CONFIG_APPEND_LIBS("hpp-core")
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(tests)
+
+INSTALL (FILES doc/continuous-collision-checking.pdf
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME}/doxygen-html)
 
 SETUP_PROJECT_FINALIZE()
