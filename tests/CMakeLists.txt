@@ -24,6 +24,7 @@ ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN)
 # Specify the tests data files directory.
 ADD_DEFINITIONS(-DTEST_DIRECTORY="${CMAKE_SOURCE_DIR}/tests/data")
 
+ADD_OPTIONAL_DEPENDENCY("hpp_environments")
 
 
 # Make Boost.Test generates the main function in test cases.
@@ -66,3 +67,7 @@ ADD_TESTCASE (paths FALSE)
 ADD_TESTCASE (relative-motion FALSE)
 ADD_TESTCASE (test-path-extraction FALSE)
 ADD_TESTCASE (test-continuous-collision-checking FALSE)
+
+IF(HPP_ENVIRONMENTS_FOUND)
+  ADD_TESTCASE (solve-problems FALSE)
+ENDIF(HPP_ENVIRONMENTS_FOUND)
