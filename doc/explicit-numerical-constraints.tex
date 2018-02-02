@@ -1,6 +1,7 @@
 \documentclass {article}
 
 \usepackage{color}
+\usepackage{amsmath}
 \title {Explicit numerical constraints on Lie groups}
 
 \newcommand\reals{\mathbf{R}}
@@ -75,6 +76,7 @@ $$
 $$
 
 \subsection {SO(3)}
+\label{sec:J-SO3-implicit}
 
 We compute now lines of the Jacobian of $h$ corresponding to $SO(3)$ parts of $\CS_{out}$. Those lines are the Jacobian of expression:
 \begin{equation}\label{eq:SO3-implicit}
@@ -116,10 +118,10 @@ Let us recall that $\left[R\omega\right]_{\times} = R\left[\omega\right]_{\times
 &=& R_{f}(\conf_{in})^TR_{out}\left[\omega_{out} - R_{out}^TR_{f}(\conf_{in})\omega_{f} \right]_{\times}
 \end{eqnarray*}
 As a result,
-\begin{eqnarray*}
+\begin{eqnarray}\label{eq:SO3-omega}
 \omega &=& \omega_{out} - R_{out}^TR_{f}(\conf_{in})\omega_{f} \\
 &=& \omega_{out} - R_{out}^TR_{f}(\conf_{in}) J_f\dot{\conf}_{in}
-\end{eqnarray*}
+\end{eqnarray}
 And the 3 corresponding lines in the Jacobian $h$ are:
 $$
 \begin{array}{ccccc}
@@ -168,10 +170,10 @@ Let $M=\left(\begin {array}{cc} R & \mathbf{p} \\ 0\ 0\ 0 & 1\end{array}\right)$
 \end{eqnarray}
 
 Using this notation, if we denote by $(\mathbf{v}, \omega)$ the time derivative of the homogeneous matrix $M_{f}(\conf_{in})^{-1} M_{out}$, we get:
-\begin{eqnarray}
+\begin{eqnarray*}
 \mathbf{v} &=& \mathbf{v}_{out} + R_{out}^T [\mathbf{p}_{out} - \mathbf{p}_{f}]_{\times} R_{f}\omega_{f} - R_{out}^T R_{f}\mathbf{v}_{f}\\
 \omega &=& \omega_{out} - R_{out}^TR_{f} \omega_{f}
-\end{eqnarray}
+\end{eqnarray*}
 We can rewrite the above expression as
 \begin{eqnarray*}
 \left(\begin{array}{c}\mathbf{v}\\\omega\end{array}\right) &=&
@@ -201,10 +203,10 @@ V &=& I_3 -\frac{1}{2}\rcross{} +  \left(\frac{1}{\normr^2} - \frac{\sin\normr}{
 &=& \alpha (\normr)I_3 - \frac{1}{2}\rcross{} + \beta \mathbf{r}\mathbf{r}^T
 \end{eqnarray}
 with
-\begin{eqnarray}
+\begin{eqnarray*}
 \beta(\normr)&=&\left(\frac{1}{\normr^2} - \frac{\sin\normr}{2\normr(1-\cos\normr)}\right)\\
 \alpha (\normr) &=& \frac{\normr\sin\normr}{2(1-\cos\normr)}
-\end{eqnarray}
+\end{eqnarray*}
 With this notation, $\logSE{3} M$ is defined by
 \begin{equation}\label{eq:logSE3}
 \logSE{3} M = \left(\begin{array}{c} V\mathbf{p} \\ \mathbf{r}\end{array}\right)
@@ -213,21 +215,21 @@ With this notation, $\logSE{3} M$ is defined by
 \subsubsection {Jacobian of the logarithm of an homogeneous matrix}
 
 We aim at computing the $6\times 6$ matrix $\JlogSE{3}$ that maps the time derivative of the homogeneous matrix to the time derivative of the logarithm:
-\begin{eqnarray}
+\begin{eqnarray*}
 \frac{d}{dt} \logSE{3} M &=& \JlogSE{3} (M) \left(\begin{array}{c}\mathbf{v}\\ \omega\end{array}\right)\\
 \left(\begin{array}{c}\dot{V}\mathbf{p} + V\mathbf{\dot{p}} \\
 \mathbf{\dot{r}}\end{array}\right) &=& \JlogSE{3} (M) \left(\begin{array}{c}\mathbf{v}\\ \omega\end{array}\right)
-\end{eqnarray}
+\end{eqnarray*}
 The Jacobian is obviously of the following form
-\begin{eqnarray}
+\begin{eqnarray*}
 \JlogSE{3} (M) &=&\left(\begin{array}{cc}
 V\ R & J \\ 0 & \JlogSO{3}
 \end{array}\right)
-\end{eqnarray}
+\end{eqnarray*}
 where $J$ is the $3\times 3$ matrix satisfying
-\begin{eqnarray}
+\begin{eqnarray*}
 \dot{V} \mathbf{p} &=& J\omega
-\end{eqnarray}
+\end{eqnarray*}
 We rewrite~(\ref{eq:V}) as
 \begin{equation}\label{eq:V_1}
 V = I_3 -\frac{1}{2}\rcross{} +  \beta (\normr)\rcross{}^2
@@ -287,11 +289,11 @@ Substituting~(\ref{eq:deriv4}) into (\ref{eq:deriv2}-\ref{eq:deriv3}), we get
 &&\left. + \rot^T\mathbf{p}\beta (\normr)I_3 + \beta (\normr)\rot\mathbf{p}^T\right)\dot{\rot}
 \end{eqnarray}
 Substituting (\ref{eq:deriv7}-\ref{eq:deriv8}) into (\ref{eq:1}), we get
-\begin{eqnarray}
+\begin{eqnarray*}
 \dot{V} \mathbf{p} &=& \left(\frac{1}{2}[\mathbf{p}]_{\times} + \dot{\beta} (\normr) \frac{\rot^T\mathbf{p}}{\normr}\rot\rot^T
 - (\normr\dot{\beta} (\normr) + 2 \beta(\normr)) \mathbf{p}\rot^T\right.\\
 &&\left. + \rot^T\mathbf{p}\beta (\normr)I_3 + \beta (\normr)\rot\mathbf{p}^T\right)\dot{\rot}
-\end{eqnarray}
+\end{eqnarray*}
 Let us recall that
 $$
 \dot{\rot} = \JlogSO{3} (R) \omega
