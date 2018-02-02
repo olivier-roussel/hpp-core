@@ -351,4 +351,94 @@ $$
 %% -\frac{1}{72}+\frac{1}{120}+\frac{1}{240} &=& -\frac{1}{3*24}+\frac{1}{5*24}+\frac{1}{10*24} = \frac {-10+6+3}{30*24} = -\frac{1}{720}
 %% \end{eqnarray*}
 
+\section {Extension to a more general framework}
+
+When $f$ computes the configuration of a joint to place relatively to another joint,
+the error expressed by $h$ does not correspond to the error expressed the corresponding
+instance of class \texttt{hpp::constraints::GenericTransformation}.
+Thus, the above framework lacks expressivity in the error representation.
+
+We define $h_{g}$ as follows:
+\begin {equation}\label{eq:def-hg}
+h_g (\conf) = \log (g (\conf_{out}) - f (\conf_{in}))
+\end {equation}
+where $g$ is an invertible mapping from $\CS_{out}$ to $\CS_{out}$, whose inverse $g^{-1}$ is known.
+
+Thus, $h_{Id}$ corresponds to $h$ as defined in equation~\ref{eq:def-h}.
+We now compute the Jacobian of $h_g$.
+
+\subsection {Vector space}
+
+Lines corresponding to vector spaces are of the form:
+$$
+\begin{array}{ccccc}
+&&\conf_{out}& \conf_{in} \\
+\reals^n & \left(\right. & \frac{\partial g}{\partial\conf_{out}} & -\frac{\partial f}{\partial\conf_{in}} & \left.\right)\\
+\end{array}
+$$
+
+\subsection {SO(3)}
+
+Equations~\eqref{eq:SO3-implicit} and~\eqref{eq:SO3-implicit-R} become
+\begin{equation}\label{eq:g-SO3-implicit}
+\log (g_i(\conf_{out\ i}) - f_{i}(\conf_{in}))
+\end{equation}
+\begin{equation}\label{eq:g-SO3-implicit-R}
+  \log (R_{f}(\conf_{in})^T R_{g}(\conf_{out}))
+\end{equation}
+where $R_{g}$ and $R_{f}$ are rotation matrices corresponding respectively to $g_i$ and $f_{i}$.
+
+Following the same reasonning as in Section~\ref{sec:J-SO3-implicit}, the expression of $\omega$ of Equation~\eqref{eq:SO3-omega} gives
+\begin{eqnarray*}
+\omega &=& \omega_{out} - R_g (\conf_{out})^TR_{f}(\conf_{in})\omega_{f} \\
+&=& J_g\dot{\conf}_{out} - R_g (\conf_{out})^TR_{f}(\conf_{in}) J_f\dot{\conf}_{in}
+\end{eqnarray*}
+And the 3 corresponding lines in the Jacobian $h_g$ are:
+$$
+\begin{array}{ccccc}
+&&\conf_{out}& \conf_{in} \\
+SO(3) & \left(\right.
+&  \JlogSO{3}\left(R_{f}(\conf_{in})^T R_g (\conf_{out})\right) J_g
+& -\JlogSO{3}\left(R_{f}(\conf_{in})^T R_g (\conf_{out})\right)R_g (\conf_{out})^TR_{f}(\conf_{in})J_{f} & \left.\right)\\
+\end{array}
+$$
+
+\subsection {SE(3)}
+
+By denoting
+$$
+M_g=\left(\begin{array}{cc}R_g &\mathbf{p}_g\\
+0 & 1 \end{array}\right)\ \ \  \mbox{and} \ \ \ M_{f}=\left(\begin{array}{cc}R_{f} &\mathbf{p}_{f}\\
+0 & 1 \end{array}\right)
+$$
+Equation~\eqref{eq:SE3-implicit-R} becomes:
+\begin{equation}\label{eq:g-SE3-implicit-R}
+\log (M_{f}(\conf_{in})^{-1} M_g(\conf_{out}))
+\end{equation}
+which can be rewritten as
+$$
+\log \left(\begin{array}{cc}
+R_{f}^T R_g & R_{f}^T\mathbf{p}_g - R_{f}^T\mathbf{p}_{f}\\
+0 & 1
+\end{array}\right)
+$$
+
+Using notations of Equations~\eqref{eq:omega} and~\eqref{eq:v},
+if we denote by $(\mathbf{v}, \omega)$ the time derivative of the homogeneous matrix $M_{f}(\conf_{in})^{-1} M_g (\conf_{out})$, we get:
+\begin{eqnarray*}
+\left(\begin{array}{c}\mathbf{v}\\\omega\end{array}\right) &=&
+\left(\begin{array}{cc}J_g & \begin{array}{c}R_g^T [\mathbf{p}_g - \mathbf{p}_{f}]_{\times} R_{f}J_{f}^{\omega} - R_g^T R_{f}J_{f}^{\mathbf{v}}\\
+-R_g^TR_{f} J_{f}^{\omega}\end{array}\end{array}\right)
+\left(\begin{array}{c}\dot{\conf}_g \\\dot{\conf}_{in}\end{array}\right)
+\end{eqnarray*}
+where $J_{f}^{\mathbf{v}}$ and $J_{f}^{\omega}$ are respectively the first 3 and last
+3 rows of the Jacobian matrix of $f_i$.
+
+And thus the Jacobian of $\mathbf{h_g}$ is
+$$
+J_{h_g} (\conf) = J_{logSE3} (M_{f}(\conf_{in})^{-1} M_g (\conf_{out}))
+\left(\begin{array}{cc}J_g & \begin{array}{c}R_g^T [\mathbf{p}_g - \mathbf{p}_{f}]_{\times} R_{f}J_{f}^{\omega} - R_g^T R_{f}J_{f}^{\mathbf{v}}\\
+-R_g^TR_{f} J_{f}^{\omega}\end{array}\end{array}\right)
+$$
+
 \end {document}
