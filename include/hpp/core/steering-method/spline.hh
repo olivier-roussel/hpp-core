@@ -100,7 +100,10 @@ namespace hpp {
               ConfigurationIn_t q1, std::vector<int> order1,  const Eigen::MatrixBase<Derived>& derivatives1,
               ConfigurationIn_t q2, std::vector<int> order2,  const Eigen::MatrixBase<Derived>& derivatives2) const;
 
+          void computeBounds ();
+
           DeviceWkPtr_t device_;
+          vector_t velBounds_;
           WkPtr_t weak_;
       }; // Spline
       /// \}

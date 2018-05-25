@@ -16,6 +16,8 @@
 
 #include <hpp/core/steering-method/spline.hh>
 
+#include <pinocchio/multibody/model.hpp>
+
 #include <hpp/pinocchio/device.hh>
 #include <hpp/pinocchio/liegroup.hh>
 #include <hpp/pinocchio/configuration.hh>
@@ -67,9 +69,9 @@ namespace hpp {
         typedef Eigen::Matrix<value_type, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RhsMatrix_t;
 
         DistancePtr_t d = problem_.distance();
-        value_type length = (*d) (q1, q2);
+        value_type T = (*d) (q1, q2);
         SplinePathPtr_t p = SplinePath::create
-          (device_.lock(), interval_t (0, length), constraints());
+          (device_.lock(), interval_t (0, T), constraints());
 
         const size_type nbConstraints = 2 + derivatives1.cols() + derivatives2.cols();
         ConstraintMatrix_t coeffs (nbConstraints, SplineOrder+1);
@@ -102,7 +104,21 @@ namespace hpp {
         // coeffs * P = rhs
         typedef Eigen::JacobiSVD < ConstraintMatrix_t > SVD_t;
         SVD_t svd (coeffs, Eigen::ComputeFullU | Eigen::ComputeFullV);
-        p->parameters (svd.solve(rhs));
+        RhsMatrix_t rhs2;
+        vector_t vb (device_.lock()->numberDof());
+        typename SplinePath::PowersOfT_t powersOfT;
+
+        for (std::size_t i = 0; i < 5; ++i) {
+          powersOfT(0) = 1;
+          for (size_type i = 1; i < powersOfT.size(); ++i)
+            powersOfT(i) = powersOfT(i - 1) * T;
+
+          rhs2 = powersOfT.asDiagonal() * rhs;
+          p->parameters (svd.solve(rhs2));
+          value_type ratio (vb.cwiseQuotient (velBounds_).maxCoeff());
+          if (ratio > 1) T /= ratio;
+          else break;
+        }
 
         return p;
       }
@@ -110,13 +126,23 @@ namespace hpp {
       template <int _PB, int _SO>
       Spline<_PB, _SO>::Spline (const Problem& problem) :
         SteeringMethod (problem), device_ (problem.robot ())
-      {}
+      {
+        computeBounds();
+      }
 
       /// Copy constructor
       template <int _PB, int _SO>
       Spline<_PB, _SO>::Spline (const Spline& other) :
         SteeringMethod (other), device_ (other.device_)
       {}
+
+      template <int _PB, int _SO>
+      void Spline<_PB, _SO>::computeBounds ()
+      {
+        const value_type safety = problem().getParameter("steeringMethod/Spline/safety", (value_type)1);
+        const DevicePtr_t& robot = problem().robot();
+        velBounds_ = safety * robot->model().velocityLimit;
+      }
 
       template class Spline<path::CanonicalPolynomeBasis, 1>; // equivalent to StraightPath
       template class Spline<path::CanonicalPolynomeBasis, 2>;
