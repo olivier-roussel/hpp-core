@@ -158,7 +158,11 @@ ADD_SUBDIRECTORY(tests)
 # Add dependency toward hpp-core library in pkg-config file.
 PKG_CONFIG_APPEND_LIBS("hpp-core")
 
-INSTALL (FILES doc/continuous-collision-checking.pdf
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME}/doxygen-html)
+IF(_INSTALL_DOC)
+  INSTALL (FILES doc/continuous-collision-checking.pdf
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/doc/${PROJECT_NAME}/doxygen-html)
+  INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/doxygen-xml
+    DESTINATION ${CMAKE_INSTALL_DOCDIR})
+ENDIF()
 
 SETUP_PROJECT_FINALIZE()
