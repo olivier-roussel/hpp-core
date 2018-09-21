@@ -745,9 +745,6 @@ namespace hpp {
     {
       if (!problem_) throw std::runtime_error ("The problem is not defined.");
 
-      // Set shooter
-      problem_->configurationShooter
-        (configurationShooters.get (configurationShooterType_) (*problem_));
       // Set steeringMethod
       initSteeringMethod ();
       PathPlannerBuilder_t createPlanner = pathPlanners.get (pathPlannerType_);
