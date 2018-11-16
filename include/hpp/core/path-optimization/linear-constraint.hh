@@ -24,6 +24,11 @@
 namespace hpp {
   namespace core {
     namespace pathOptimization {
+      enum DecompositionMethod
+      { SVD
+        , ColPivHouseholderQR
+      };
+
       /// A linear constraint \f$ J \times x = b \f$
       struct LinearConstraint
       {
@@ -51,7 +56,8 @@ namespace hpp {
         /// \param check If true, checks whether the constraint is feasible.
         /// \return whether the constraint is feasible
         ///                 (alwys true when check is false)
-        bool decompose (bool check = false, bool throwIfNotValid = false);
+        bool decompose (DecompositionMethod method,
+            bool check = false, bool throwIfNotValid = false);
 
         /// Compute rank of the constraint using a LU decomposition
         void computeRank ()
@@ -131,6 +137,11 @@ namespace hpp {
         vector_t xStar, xSol;
 
         /// \}
+
+        private:
+        void QRdecomposition ();
+
+        void SVDdecomposition ();
       };
     } // namespace pathOptimization
   }  // namespace core

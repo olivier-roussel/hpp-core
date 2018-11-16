@@ -411,7 +411,7 @@ namespace hpp {
         //
         // true = check that the constraint is feasible.
         // true = throws if the constraint is infeasible.
-        constraint.decompose (true, true);
+        constraint.decompose (SVD, true, true);
 
         LinearConstraint collisionReduced (constraint.PK.rows(), 0);
         constraint.reduceConstraint(collision, collisionReduced);

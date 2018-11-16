@@ -21,32 +21,23 @@
 
 #include <hpp/pinocchio/util.hh>
 
-// #define USE_SVD
-#ifdef USE_SVD
-# include <hpp/constraints/svd.hh>
-#endif
+#include <hpp/constraints/svd.hh>
 
 namespace hpp {
   namespace core {
     namespace pathOptimization {
-      HPP_DEFINE_TIMECOUNTER(LinearConstraint_decompose);
+      HPP_DEFINE_TIMECOUNTER(LinearConstraint_SVD_decomposition);
+      HPP_DEFINE_TIMECOUNTER(LinearConstraint_QR_decomposition );
 
       LinearConstraint::~LinearConstraint ()
       {
         HPP_DISPLAY_TIMECOUNTER(LinearConstraint_decompose);
       }
 
-      bool LinearConstraint::decompose (bool check, bool throwIfNotValid)
+      void LinearConstraint::SVDdecomposition ()
       {
-        HPP_SCOPE_TIMECOUNTER(LinearConstraint_decompose);
+        HPP_SCOPE_TIMECOUNTER(LinearConstraint_SVD_decomposition);
 
-        if (J.rows() == 0) { // No constraint
-          PK = matrix_t::Identity (J.cols(), J.cols());
-          xStar = vector_t::Zero (PK.rows());
-          return true;
-        }
-
-#ifdef USE_SVD
         typedef Eigen::JacobiSVD < matrix_t > Decomposition_t; 
         Decomposition_t dec (J, Eigen::ComputeThinU | Eigen::ComputeFullV);
         rank = dec.rank();
@@ -57,7 +48,12 @@ namespace hpp {
         xStar = dec.solve (b);
 
         PK.noalias() = constraints::getV2(dec, rank);
-#else // USE_SVD
+      }
+
+      void LinearConstraint::QRdecomposition ()
+      {
+        HPP_SCOPE_TIMECOUNTER(LinearConstraint_QR_decomposition );
+
         Eigen::ColPivHouseholderQR < matrix_t > qr (J.transpose());
         rank = qr.rank();
 
@@ -74,7 +70,26 @@ namespace hpp {
         xStar.noalias() = qr.householderQ() * z;
 
         PK.noalias() = qr.householderQ() * matrix_t::Identity(J.cols(), J.cols()).rightCols(J.cols() - rank);
-#endif // USE_SVD
+      }
+
+      bool LinearConstraint::decompose (DecompositionMethod method, bool check, bool throwIfNotValid)
+      {
+        if (J.rows() == 0) { // No constraint
+          PK = matrix_t::Identity (J.cols(), J.cols());
+          xStar = vector_t::Zero (PK.rows());
+          return true;
+        }
+
+        switch (method) {
+          case SVD:
+            SVDdecomposition ();
+            break;
+          case ColPivHouseholderQR:
+            QRdecomposition ();
+            break;
+          default:
+            throw std::invalid_argument("Unknown decomposition method");
+        }
 
         if (check) {
           // check that the constraints are feasible
