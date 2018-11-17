@@ -193,6 +193,7 @@ namespace hpp {
 
     private:
       Paths_t paths_;
+      std::vector<value_type> times_;
       PathVectorWkPtr_t weak_;
     }; // class PathVector
     /// \}

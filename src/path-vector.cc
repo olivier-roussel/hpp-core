@@ -27,40 +27,34 @@ namespace hpp {
 					 value_type& localParam) const
     {
       assert(!timeParameterization());
+      assert(param >= 0 && param <= paramLength());
       if (paths_.empty())
         throw std::runtime_error ("PathVector is empty.");
-      std::size_t res = 0;
-      localParam = param;
-      bool finished = false;
 
-      while (res + 1 < paths_.size () && !finished) {
-	if (localParam > paths_ [res]->length ()) {
-	  localParam -= paths_ [res]->length ();
-	  res ++;
-	}
-	else {
-	  finished = true;
-	}
-      }
-      if (localParam > paths_ [res]->length ()) {
-	if (res != paths_.size () -1) {
-	  throw std::runtime_error ("localparam out of range.");
-	}
-	localParam = paths_ [res]->timeRange ().second;
-      } else {
-	localParam += paths_ [res]->timeRange ().first;
-      }
-      assert (localParam >= paths_ [res]->timeRange ().first -
-	      std::numeric_limits <float>::epsilon ());
-      assert (localParam <= paths_ [res]->timeRange ().second +
-	      std::numeric_limits <float>::epsilon ());
-      return res;
+      // *(_time-1) <= param < *_time
+      std::vector<value_type>::const_iterator _time =
+        std::upper_bound (times_.begin(), times_.end(), param);
+
+      std::size_t rank = _time - times_.begin();
+      if (_time == times_.end()) rank = paths_.size()-1;
+
+      const interval_t& tr = paths_ [rank]->timeRange ();
+
+      localParam = std::min(
+          tr.second,
+          tr.first + (rank > 0 ? param - times_[rank-1] : param));
+
+      assert (localParam >= tr.first);
+      assert (localParam <= tr.second);
+      return rank;
     }
 
     void PathVector::appendPath (const PathPtr_t& path)
     {
       assert(!timeParameterization());
       paths_.push_back (path);
+      const value_type prevT = (times_.empty() ? 0 : times_.back());
+      times_.push_back (path->length() + prevT);
       interval_t tr = timeRange();
       tr.second += path->length ();
       timeRange (tr);
