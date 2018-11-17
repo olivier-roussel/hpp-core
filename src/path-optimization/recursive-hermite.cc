@@ -26,14 +26,13 @@
 #include <hpp/core/steering-method/hermite.hh>
 
 #include <limits>
-#include <queue>
-#include <stack>
 
 namespace hpp {
   namespace core {
     namespace pathOptimization {
       typedef std::vector<path::HermitePtr_t> HermitePaths_t;
       typedef std::vector<HermitePaths_t> HermitePathss_t;
+      const value_type infty = std::numeric_limits<value_type>::infinity();
 
       PathVectorPtr_t cleanInput (const PathVectorPtr_t& input)
       {
@@ -194,14 +193,20 @@ namespace hpp {
         for (std::size_t i = 0; i < hermites.size(); ++i) {
           PathVectorPtr_t tmpRes = PathVector::create
             (input->outputSize (), input->outputDerivativeSize ());
+
+          value_type thr = infty;
+          ConfigProjectorPtr_t proj = getConfigProj (paths[i]);
+          if (proj) thr = 2 * proj->errorThreshold() / M_;
+
           const interval_t& tr = paths[i]->timeRange();
-          value_type thr = 2 * errThr / M_;
           size_type mi = maxIter;
           while (!recurse (paths[i], tr.first, tr.second, hermites[i], tmpRes, thr))
           {
             tmpRes = PathVector::create
               (input->outputSize (), input->outputDerivativeSize ());
-            thr /= 2;
+            if (thr == infty) thr = 2 * errThr / M_;
+            else thr /= 2;
+            hppDout (info, "Threshold: " << thr);
             mi--;
             if (mi == 0)
               throw std::runtime_error ("Threshold becomes too low");
@@ -261,7 +266,7 @@ namespace hpp {
       Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
             "RecursiveHermite/errorThreshold",
             "The constraints satisfaction threshold.",
-            Parameter(1e-3)));
+            Parameter(1.)));
       Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
             "RecursiveHermite/LipschitzConstant",
             "A Lipschitz constant of the constraints.",
