@@ -20,6 +20,7 @@
 # include "hpp/core/fwd.hh"
 # include "hpp/core/config.hh"
 # include "hpp/core/path-optimizer.hh"
+# include "hpp/core/steering-method/fwd.hh"
 
 namespace hpp {
   namespace core {
@@ -33,24 +34,25 @@ namespace hpp {
           typedef hpp::core::path::Hermite Hermite;
           typedef hpp::core::path::HermitePtr_t HermitePtr_t;
 
-          static RecursiveHermitePtr_t create (const DistancePtr_t& distance,
-              const SteeringMethodPtr_t& steeringMethod, value_type step);
-
           static RecursiveHermitePtr_t create (const Problem& problem,
-              const value_type& step);
+              const value_type& M, const value_type& beta);
+
+          static RecursiveHermitePtr_t createFromParameters (const Problem& problem);
+
+          PathVectorPtr_t optimize (const PathVectorPtr_t& path);
 
         protected:
-          bool impl_apply (const PathPtr_t& path,
-              PathPtr_t& projection) const;
-
-          RecursiveHermite (const DistancePtr_t& distance,
-              const SteeringMethodPtr_t& steeringMethod,
+          RecursiveHermite (const Problem& problem,
               const value_type& M, const value_type& beta);
 
           bool project (const PathPtr_t& path, PathPtr_t& proj) const;
 
         private:
-          bool recurse (const HermitePtr_t& path, PathVectorPtr_t& proj, const value_type& thr) const;
+          bool recurse (const PathPtr_t input,
+              const value_type& t0, const value_type& t1,
+              const HermitePtr_t& path, PathVectorPtr_t& proj, const value_type& thr) const;
+
+          steeringMethod::HermitePtr_t sm_;
           value_type M_, beta_;
       };
     } // namespace pathOptimization

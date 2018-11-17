@@ -20,6 +20,7 @@
 
 #include <hpp/core/path-vector.hh>
 #include <hpp/core/path/hermite.hh>
+#include <hpp/core/path-validation.hh>
 #include <hpp/core/interpolated-path.hh>
 #include <hpp/core/config-projector.hh>
 #include <hpp/core/steering-method/hermite.hh>
@@ -30,99 +31,146 @@
 
 namespace hpp {
   namespace core {
-    namespace pathOptimizer {
-      RecursiveHermitePtr_t RecursiveHermite::create (const DistancePtr_t& distance,
-          const SteeringMethodPtr_t& steeringMethod, value_type step)
+    namespace pathOptimization {
+      typedef std::vector<path::HermitePtr_t> HermitePaths_t;
+      typedef std::vector<HermitePaths_t> HermitePathss_t;
+
+      PathVectorPtr_t cleanInput (const PathVectorPtr_t& input)
       {
-        value_type beta = steeringMethod->problem()
-          .getParameter ("PathProjection/RecursiveHermite/Beta").floatValue();
-        hppDout (info, "beta is " << beta);
-        return RecursiveHermitePtr_t (new RecursiveHermite
-            (distance, steeringMethod, step, beta));
+        PathVectorPtr_t flat = PathVector::create
+          (input->outputSize(), input->outputDerivativeSize());
+        input->flatten(flat);
+        // Remove zero length path
+        PathVectorPtr_t clean = PathVector::create
+          (input->outputSize(), input->outputDerivativeSize());
+        for (std::size_t i = 0; i < flat->numberPaths(); ++i) {
+          PathPtr_t p = flat->pathAtRank (i);
+          if (p->length() > 0) clean->appendPath (p);
+        }
+        return clean;
       }
 
-      RecursiveHermitePtr_t RecursiveHermite::create (
-          const Problem& problem, const value_type& step)
+      ConfigProjectorPtr_t getConfigProj (const PathPtr_t& p)
       {
-        return create (problem.distance(), problem.steeringMethod(), step);
+        const ConstraintSetPtr_t& c = p->constraints();
+        if (c) return c->configProjector();
+        else   return ConfigProjectorPtr_t();
       }
 
-      RecursiveHermite::RecursiveHermite (const DistancePtr_t& distance,
-				const SteeringMethodPtr_t& steeringMethod,
-				const value_type& M, const value_type& beta) :
-        PathOptimizer (distance, steeringMethod, false), M_ (M),
-        beta_ (beta)
+      bool velocityAt (PathPtr_t p, const value_type& t, Configuration_t& q, vector_t& v)
+      {
+        if (!p) return false;
+        p->derivative(v, t, 1);
+
+        ConfigProjectorPtr_t proj = getConfigProj (p);
+        if (proj) {
+          (*p) (q, t);
+          proj->projectVectorOnKernel (q, v, v);
+          return true;
+        }
+        return false;
+      }
+
+      /// \tparam beginning whether to use initial or final velocity.
+      /// \return true if the velocity was projected.
+      template <bool beginning>
+      bool velocity (PathPtr_t p, Configuration_t& q, vector_t& v)
+      {
+        if (!p) return false;
+        const interval_t& tr = p->timeRange();
+        value_type t = (beginning ? tr.first : tr.second);
+        return velocityAt (p, t, q, v);
+      }
+
+      void velocity (PathPtr_t before, PathPtr_t after, Configuration_t& q,
+          vector_t& vb, vector_t& va, vector_t& v)
+      {
+        assert (before || after);
+        bool beforeProjected = velocity<false> (before, q, vb),
+             afterProjected  = velocity<true > (after , q, va);
+
+        if (before && after) {
+          if      ( beforeProjected &&  afterProjected) v = (vb+va)/2;
+          else if (!beforeProjected &&  afterProjected) v =     va   ;
+          else if ( beforeProjected && !afterProjected) v =  vb      ;
+          else if (!beforeProjected && !afterProjected) v = (vb+va)/2;
+        }
+        else if (before)     v = vb;
+        else if (after )     v = va;
+      }
+
+      RecursiveHermitePtr_t RecursiveHermite::create (const Problem& problem,
+          const value_type& M, const value_type& beta)
+      {
+        return RecursiveHermitePtr_t (new RecursiveHermite (problem, M, beta));
+      }
+
+      RecursiveHermitePtr_t RecursiveHermite::createFromParameters (const Problem& problem)
+      {
+        value_type beta = problem.getParameter("RecursiveHermite/beta").floatValue();
+        if (beta < 0.5 || 1 < beta)
+          throw std::invalid_argument ("Parameter \"RecursiveHermite/beta\" "
+              "should be between 0.5 and 1");
+        value_type M = problem.getParameter("RecursiveHermite/LipschitzConstant").floatValue();
+        if (M <= 0)
+          throw std::invalid_argument ("Parameter \"RecursiveHermite/LipschitzConstant\" "
+              "should greater than 0");
+        return create (problem, M, beta);
+      }
+
+      RecursiveHermite::RecursiveHermite (const Problem& problem,
+          const value_type& M, const value_type& beta) :
+        PathOptimizer (problem),
+        sm_ (steeringMethod::Hermite::create(problem)),
+        M_ (M), beta_ (beta)
       {
         // beta should be between 0.5 and 1.
         if (beta_ < 0.5 || 1 < beta_)
           throw std::invalid_argument ("Beta should be between 0.5 and 1");
-        if (!HPP_DYNAMIC_PTR_CAST(hpp::core::steeringMethod::Hermite, steeringMethod))
-          throw std::invalid_argument ("Steering method should be of type Hermite");
       }
 
-      bool RecursiveHermite::impl_apply (const PathPtr_t& path,
-				    PathPtr_t& proj) const
+      PathVectorPtr_t RecursiveHermite::optimize (const PathVectorPtr_t& input)
       {
-	assert (path);
-	bool success = false;
-	PathVectorPtr_t pv = HPP_DYNAMIC_PTR_CAST (PathVector, path);
-	if (!pv) {
-          if (!path->constraints()
-              || !path->constraints()->configProjector()) {
-            proj = path;
-            success = true;
-          } else {
-            success = project (path, proj);
-          }
-	} else {
-	  PathVectorPtr_t res = PathVector::create
-	    (pv->outputSize (), pv->outputDerivativeSize ());
-	  PathPtr_t part;
-	  success = true;
-	  for (size_t i = 0; i < pv->numberPaths (); i++) {
-	    if (!apply (pv->pathAtRank (i), part)) {
-	      // We add the path only if part is not NULL and:
-	      // - either its length is not zero,
-	      // - or it's not the first one.
-	      if (part && (part->length () > 0 || i == 0)) {
-		res->appendPath (part);
-	      }
-	      success = false;
-	      break;
-	    }
-	    res->appendPath (part);
-	  }
-	  proj = res;
-	}
-	assert (proj);
-	assert ((proj->initial () - path->initial ()).isZero());
-	assert (!success || (proj->end () - path->end ()).isZero());
-	return success;
-      }
+        const value_type errThr = problem().getParameter("RecursiveHermite/errorThreshold").floatValue();
+        if (errThr <= 0)
+          throw std::invalid_argument ("Parameter \"RecursiveHermite/errorThreshold\" "
+              "should greater than 0");
+        const size_type maxIter = problem().getParameter("RecursiveHermite/maxIter").intValue();
 
-      bool RecursiveHermite::project (const PathPtr_t& path, PathPtr_t& proj) const
-      {
-        ConstraintSetPtr_t constraints = path->constraints ();
-	if (!constraints) {
-	  proj = path;
-	  return true;
-	}
-        const Configuration_t q1 = path->initial ();
-        const Configuration_t q2 = path->end ();
-        if (!constraints->isSatisfied (q2)) return false;
-        const ConfigProjectorPtr_t& cp = constraints->configProjector ();
-        if (!cp || cp->dimension() == 0) {
-          proj = path;
-          return true;
+        PathVectorPtr_t flat = PathVector::create
+          (input->outputSize(), input->outputDerivativeSize());
+        input->flatten(flat);
+        PathVectorPtr_t path = PathVector::create
+          (input->outputSize(), input->outputDerivativeSize());
+        std::vector<PathPtr_t> paths;
+        paths.reserve (flat->numberPaths());
+
+        for (std::size_t i = 0; i < flat->numberPaths(); ++i) {
+          PathPtr_t p = flat->pathAtRank (i);
+          // Remove zero length path.
+          if (p->length() > 0)
+            paths.push_back(p);
         }
+        HermitePaths_t hermites;
 
-        steeringMethod_->constraints(constraints);
+        // Make initial vector of hermite curves with continuous velocities
+        PathPtr_t prev, next;
+        Configuration_t qtmp (input->outputSize());
+        vector_t vtmp0 (input->outputDerivativeSize()),
+                 vtmp1 (vtmp0.size()),
+                 v0 (vtmp0.size()),
+                 v1 (vtmp0.size());
+        for (std::size_t i = 0; i < paths.size(); ++i)
+        {
+          PathPtr_t cur = paths[i];
+          if (i < paths.size()-1) next = paths[i+1];
+          else                    next.reset();
 
-        const value_type thr = 2 * cp->errorThreshold() / M_;
+          velocity (prev, cur, qtmp, vtmp0, vtmp1, v0);
+          velocity (cur, next, qtmp, vtmp0, vtmp1, v1);
 
-        std::vector<HermitePtr_t> ps;
-        HermitePtr_t p = HPP_DYNAMIC_PTR_CAST (Hermite, path);
-        if (!p) {
+          // TODO handle projected path.
+          /*
           InterpolatedPathPtr_t ip = HPP_DYNAMIC_PTR_CAST(InterpolatedPath, path);
           if (ip) {
             typedef InterpolatedPath::InterpolationPoints_t IPs_t;
@@ -135,120 +183,98 @@ namespace hpp {
                     steer (_ip0->second, _ip1->second)));
               ++_ip1;
             }
-          } else {
-            p = HPP_DYNAMIC_PTR_CAST(Hermite, steer (path->initial(), path->end()));
-            ps.push_back (p);
+            */
+          hermites.push_back(sm_->steer (cur->initial(), cur->end(), v0, v1, cur->length()));
+          prev = cur;
+        }
+
+        // For each segment, do apply the projection algorithm.
+        PathVectorPtr_t res = PathVector::create
+          (input->outputSize (), input->outputDerivativeSize ());
+        for (std::size_t i = 0; i < hermites.size(); ++i) {
+          PathVectorPtr_t tmpRes = PathVector::create
+            (input->outputSize (), input->outputDerivativeSize ());
+          const interval_t& tr = paths[i]->timeRange();
+          value_type thr = 2 * errThr / M_;
+          size_type mi = maxIter;
+          while (!recurse (paths[i], tr.first, tr.second, hermites[i], tmpRes, thr))
+          {
+            tmpRes = PathVector::create
+              (input->outputSize (), input->outputDerivativeSize ());
+            thr /= 2;
+            mi--;
+            if (mi == 0)
+              throw std::runtime_error ("Threshold becomes too low");
           }
-        } else {
-          ps.push_back (p);
+          res->concatenate(tmpRes);
         }
-        PathVectorPtr_t res = PathVector::create (path->outputSize(),
-                                                  path->outputDerivativeSize());
-        bool success = true;
-        for (std::size_t i = 0; i < ps.size(); ++i) {
-          p = ps[i];
-          p->computeHermiteLength();
-          if (p->hermiteLength() < thr) {
-            res->appendPath (p);
-            continue;
-          }
-          PathVectorPtr_t r = PathVector::create (path->outputSize(),
-                                                  path->outputDerivativeSize());
-          std::cout << p->hermiteLength() 
-            << " / " << thr
-            << " : " << 
-            path->constraints()->name() << std::endl;
-          success = recurse (p, r, thr);
-          res->concatenate (r);
-          if (!success) break;
-        }
-#if HPP_ENABLE_BENCHMARK
-        value_type min = std::numeric_limits<value_type>::max(), max = 0, totalLength = 0;
-        const size_t nbPaths = res->numberPaths();
-        for (std::size_t i = 0; i < nbPaths; ++i) {
-          PathPtr_t curP = res->pathAtRank(i);
-          const value_type l = d(curP->initial(), curP->end());
-          if (l < min) min = l;
-          else if (l > max) max = l;
-          totalLength += l;
-        }
-        hppBenchmark("Hermite path: "
-            << nbPaths
-            << ", [ " << min
-            <<   ", " << (nbPaths == 0 ? 0 : totalLength / (value_type)nbPaths)
-            <<   ", " << max << "]"
-            );
-#endif
-        if (success) {
-          proj = res;
-          return true;
-        }
-        const value_type tmin = path->timeRange().first;
-        switch (res->numberPaths()) {
-          case 0:
-            proj = path->extract (std::make_pair (tmin, tmin));
-            break;
-          case 1:
-            proj = res->pathAtRank(0);
-            break;
-          default:
-            proj = res;
-            break;
-        }
-        return false;
+
+	return res;
       }
 
-      bool RecursiveHermite::recurse (const HermitePtr_t& path, PathVectorPtr_t& proj,
+      bool RecursiveHermite::recurse (const PathPtr_t input,
+          const value_type& t0, const value_type& t1,
+          const HermitePtr_t& path, PathVectorPtr_t& proj,
           const value_type& acceptThr) const
       {
         if (path->hermiteLength() < acceptThr) {
-          // TODO this does not work because it is not possible to remove
-          // constraints from a path.
-          // proj->appendPath (path->copy (ConstraintSetPtr_t()));
-          proj->appendPath(path);
-          return true;
-        } else {
-          const value_type t = 0.5; //path->timeRange().first + path->length() / 2;
-          bool success;
-          const Configuration_t q1((*path) (t, success));
-          if (!success) {
-            hppDout (info, "RHP stopped because it could not project a configuration");
-            return false;
+          // If there are collision, then the path must be split.
+          PathPtr_t validPart;
+	  PathValidationReportPtr_t report;
+          bool valid = problem ().pathValidation ()->validate (path, false, validPart, report);
+          if (valid) {
+            // TODO this does not work because it is not possible to remove
+            // constraints from a path.
+            // proj->appendPath (path->copy (ConstraintSetPtr_t()));
+            proj->appendPath(path);
+            return true;
           }
-          const Configuration_t q0 = path->initial ();
-          const Configuration_t q2 = path->end ();
-          // Velocities must be divided by two because each half is rescale
-          // from [0, 0.5] to [0, 1]
-          const vector_t vHalf = path->velocity (t) / 2;
-
-          HermitePtr_t left = HPP_DYNAMIC_PTR_CAST(Hermite, steer (q0, q1));
-          if (!left) throw std::runtime_error ("Not an path::Hermite");
-          left->v0 (path->v0() / 2);
-          left->v1 (vHalf);
-          left->computeHermiteLength();
-
-          HermitePtr_t right = HPP_DYNAMIC_PTR_CAST(Hermite, steer (q1, q2));
-          if (!right) throw std::runtime_error ("Not an path::Hermite");
-          right->v0 (vHalf);
-          right->v1 (path->v1() / 2);
-          right->computeHermiteLength();
-
-          const value_type stopThr = beta_ * path->hermiteLength();
-          bool lStop = ( left ->hermiteLength() > stopThr );
-          bool rStop = ( right->hermiteLength() > stopThr );
-          bool stop = rStop || lStop;
-          // This is the inverse of the condition in the RSS paper. Is there a typo in the paper ?
-          // if (std::max (left->hermiteLength(), right->hermiteLength()) > beta * path->hermiteLength()) {
-          if (stop) {
-            hppDout (info, "RHP stopped: " << path->hermiteLength() << " * " << beta_ << " -> " <<
-                left->hermiteLength() << " / " << right->hermiteLength());
-          }
-          if (lStop || !recurse (left , proj, acceptThr)) return false;
-          if ( stop || !recurse (right, proj, acceptThr)) return false;
-
-          return true;
+          return false;
         }
+
+        // Split path into two.
+        //const value_type t = 0.5; //path->timeRange().first + path->length() / 2;
+        const value_type t = (t0 + t1)/2; //path->timeRange().first + path->length() / 2;
+        bool success;
+        Configuration_t q1((*input) (t, success));
+        if (!success) {
+          hppDout (info, "RHP stopped because it could not project a configuration");
+          return false;
+        }
+        const Configuration_t q0 = path->initial ();
+        const Configuration_t q2 = path->end ();
+        vector_t vHalf (input->outputDerivativeSize());
+        velocityAt (input, t, q1, vHalf);
+
+        HermitePtr_t left  = sm_->steer (q0, q1, path->v0(), vHalf, t - t0);
+        HermitePtr_t right = sm_->steer (q1, q2, vHalf, path->v1(), t1 - t);
+
+        if (!recurse (input, t0, t, left , proj, acceptThr)) return false;
+        if (!recurse (input, t, t1, right, proj, acceptThr)) return false;
+
+        return true;
       }
-    } // namespace pathOptimizer
+
+      // ----------- Declare parameters ------------------------------------- //
+
+      HPP_START_PARAMETER_DECLARATION(pathOptimization_RecursiveHermite)
+      Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
+            "RecursiveHermite/errorThreshold",
+            "The constraints satisfaction threshold.",
+            Parameter(1e-3)));
+      Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
+            "RecursiveHermite/LipschitzConstant",
+            "A Lipschitz constant of the constraints.",
+            Parameter(10.)));
+      Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
+            "RecursiveHermite/beta",
+            "See \"Fast Interpolation and Time-Optimization on Implicit Contact Submanifolds\" from Kris Hauser.",
+            Parameter(0.9)));
+      Problem::declareParameter(ParameterDescription (Parameter::INT,
+            "RecursiveHermite/maxIter",
+            "Maximum number of reduction of the threshold.",
+            Parameter(size_type(10))));
+      HPP_END_PARAMETER_DECLARATION(pathOptimization_RecursiveHermite)
+    } // namespace pathOptimization
   } // namespace core
 } // namespace hpp
