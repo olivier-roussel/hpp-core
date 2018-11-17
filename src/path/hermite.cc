@@ -31,8 +31,9 @@ namespace hpp {
       Hermite::Hermite (const DevicePtr_t& device,
                         ConfigurationIn_t init,
                         ConfigurationIn_t end,
+                        const value_type& length,
                         ConstraintSetPtr_t constraints) :
-        parent_t (device, interval_t (0, 1), constraints),
+        parent_t (device, interval_t (0, length), constraints),
         init_ (init), end_ (end),
         hermiteLength_ (-1)
       {
@@ -42,7 +43,7 @@ namespace hpp {
         base (init);
         parameters_.row(0).setZero();
         pinocchio::difference<hpp::pinocchio::RnxSOnLieGroupMap>
-          (robot_, init, end, parameters_.row(3));
+          (robot_, end, init, parameters_.row(3));
 
         projectVelocities(init, end);
       }
@@ -93,7 +94,8 @@ namespace hpp {
 
       void Hermite::computeHermiteLength ()
       {
-        hermiteLength_ = (parameters_.bottomRows<3>() - parameters_.topRows<3>()).rowwise().norm().sum();
+        //hermiteLength_ = (parameters_.bottomRows<3>() - parameters_.topRows<3>()).rowwise().norm().sum();
+        hermiteLength_ = squaredNormIntegral(1);
       }
 
       vector_t Hermite::velocity (const value_type& param) const

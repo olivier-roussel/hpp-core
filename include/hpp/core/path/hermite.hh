@@ -39,9 +39,10 @@ namespace hpp {
         static HermitePtr_t create (const DevicePtr_t& device,
                                     ConfigurationIn_t init,
                                     ConfigurationIn_t end,
+                                    const value_type& length,
                                     ConstraintSetPtr_t constraints)
         {
-          Hermite* ptr = new Hermite (device, init, end, constraints);
+          Hermite* ptr = new Hermite (device, init, end, length, constraints);
           HermitePtr_t shPtr (ptr);
           ptr->init (shPtr);
           return shPtr;
@@ -92,19 +93,19 @@ namespace hpp {
 
         void v0 (const vectorIn_t& speed)
         {
-          parameters_.row(1) = parameters_.row(0) + speed.transpose() / 3;
+          parameters_.row(1) = parameters_.row(0) + speed.transpose() * length() / 3;
           hermiteLength_ = -1;
         }
 
         void v1 (const vectorIn_t& speed)
         {
-          parameters_.row(2) = parameters_.row(3) - speed.transpose() / 3;
+          parameters_.row(2) = parameters_.row(3) - speed.transpose() * length() / 3;
           hermiteLength_ = -1;
         }
 
         vector_t v0 () const
         {
-          return 3 * (parameters_.row(1) - parameters_.row(0));
+          return (3 / length()) * (parameters_.row(1) - parameters_.row(0));
           // TODO Should be equivalent to
           // vector_t res (outputDerivativeSize());
           // derivative (res, timeRange().first, 1);
@@ -113,7 +114,7 @@ namespace hpp {
 
         vector_t v1 () const
         {
-          return 3 * (parameters_.row(3) - parameters_.row(2));
+          return (3 / length()) * (parameters_.row(3) - parameters_.row(2));
         }
 
         virtual Configuration_t initial () const
@@ -146,13 +147,10 @@ namespace hpp {
           return os;
         }
 
-        /// Constructor
-        Hermite (const DevicePtr_t& robot, ConfigurationIn_t init,
-              ConfigurationIn_t end);
-
         /// Constructor with constraints
         Hermite (const DevicePtr_t& robot, ConfigurationIn_t init,
-              ConfigurationIn_t end, ConstraintSetPtr_t constraints);
+              ConfigurationIn_t end, const value_type& length,
+              ConstraintSetPtr_t constraints);
 
         /// Copy constructor
         Hermite (const Hermite& path);

@@ -23,7 +23,7 @@
 # include <hpp/core/steering-method/fwd.hh>
 # include <hpp/core/steering-method.hh>
 # include <hpp/core/path/hermite.hh>
-# include <hpp/core/weighed-distance.hh>
+# include <hpp/core/distance.hh>
 
 namespace hpp {
   namespace core {
@@ -64,9 +64,22 @@ namespace hpp {
           virtual PathPtr_t impl_compute (ConfigurationIn_t q1,
               ConfigurationIn_t q2) const
           {
-            path::HermitePtr_t path = path::Hermite::create
-              (problem_.robot(), q1, q2, constraints ());
+            value_type length = (*problem_.distance()) (q1, q2);
 
+            path::HermitePtr_t path = path::Hermite::create
+              (problem_.robot(), q1, q2, length, constraints ());
+
+            path->computeHermiteLength();
+            return path;
+          }
+
+          path::HermitePtr_t steer (ConfigurationIn_t q1, ConfigurationIn_t q2,
+              const vector_t& v0, const vector_t& v1, const value_type& l) const
+          {
+            path::HermitePtr_t path = path::Hermite::create
+              (problem_.robot(), q1, q2, l, constraints ());
+            path->v0 (v0);
+            path->v1 (v1);
             path->computeHermiteLength();
             return path;
           }
