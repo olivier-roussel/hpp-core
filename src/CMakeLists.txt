@@ -61,6 +61,7 @@ path-validations.cc
   path-optimization/quadratic-program.cc
   path-optimization/config-optimization.cc#
   path-optimization/simple-time-parameterization.cc#
+  path-optimization/recursive-hermite.cc
   path-planner.cc #
   path-planner/k-prm-star.cc
   path-vector.cc #
@@ -73,7 +74,6 @@ path-validations.cc
   path-projector/dichotomy.cc #
   path-projector/global.cc #
   path-projector/progressive.cc #
-  path-projector/recursive-hermite.cc
   path-projector.cc #
   parser/roadmap-factory.cc #
   problem-target/goal-configurations.cc #

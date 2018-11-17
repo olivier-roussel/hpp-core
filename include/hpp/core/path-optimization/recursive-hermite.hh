@@ -14,20 +14,20 @@
 // received a copy of the GNU Lesser General Public License along with
 // hpp-core. If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef HPP_CORE_PATHPROJECTOR_RECURSIVE_HERMITE_HH
-# define HPP_CORE_PATHPROJECTOR_RECURSIVE_HERMITE_HH
+#ifndef HPP_CORE_PATH_OPTIMIZATION_RECURSIVE_HERMITE_HH
+# define HPP_CORE_PATH_OPTIMIZATION_RECURSIVE_HERMITE_HH
 
 # include "hpp/core/fwd.hh"
 # include "hpp/core/config.hh"
-# include "hpp/core/path-projector.hh"
+# include "hpp/core/path-optimizer.hh"
 
 namespace hpp {
   namespace core {
-    namespace pathProjector {
+    namespace pathOptimization {
       /// Implements
       /// "Fast Interpolation and Time-Optimization on Implicit Contact Submanifolds"
       /// from Kris Hauser.
-      class HPP_CORE_DLLAPI RecursiveHermite : public PathProjector
+      class HPP_CORE_DLLAPI RecursiveHermite : public PathOptimizer
       {
         public:
           typedef hpp::core::path::Hermite Hermite;
@@ -53,8 +53,8 @@ namespace hpp {
           bool recurse (const HermitePtr_t& path, PathVectorPtr_t& proj, const value_type& thr) const;
           value_type M_, beta_;
       };
-    } // namespace pathProjector
+    } // namespace pathOptimization
   } // namespace core
 } // namespace hpp
 
-#endif // HPP_CORE_PATHPROJECTOR_RECURSIVE_HERMITE_HH
+#endif // HPP_CORE_PATH_OPTIMIZATION_RECURSIVE_HERMITE_HH

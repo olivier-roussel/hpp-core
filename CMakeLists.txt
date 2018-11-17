@@ -98,6 +98,7 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/core/path-optimization/simple-time-parameterization.hh
   include/hpp/core/path-optimization/spline-gradient-based.hh
   include/hpp/core/path-optimization/spline-gradient-based-abstract.hh
+  include/hpp/core/path-optimization/recursive-hermite.hh
   include/hpp/core/path-optimizer.hh
   include/hpp/core/path-planner.hh
   include/hpp/core/path-planner/k-prm-star.hh
@@ -131,7 +132,6 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/core/path-projector/progressive.hh
   include/hpp/core/path-projector/dichotomy.hh
   include/hpp/core/path-projector/global.hh
-  include/hpp/core/path-projector/recursive-hermite.hh
   include/hpp/core/path-projector.hh
   include/hpp/core/nearest-neighbor.hh
   include/hpp/core/parser/roadmap-factory.hh

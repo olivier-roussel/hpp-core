@@ -272,6 +272,8 @@ namespace hpp {
       HPP_PREDEF_CLASS (ConfigOptimization);
       typedef boost::shared_ptr <ConfigOptimization>
         ConfigOptimizationPtr_t;
+      HPP_PREDEF_CLASS (RecursiveHermite);
+      typedef boost::shared_ptr <RecursiveHermite> RecursiveHermitePtr_t;
     } // namespace pathOptimization
 
     namespace pathPlanner {
@@ -288,8 +290,6 @@ namespace hpp {
       typedef boost::shared_ptr <Dichotomy> DichotomyPtr_t;
       HPP_PREDEF_CLASS (Progressive);
       typedef boost::shared_ptr <Progressive> ProgressivePtr_t;
-      HPP_PREDEF_CLASS (RecursiveHermite);
-      typedef boost::shared_ptr <RecursiveHermite> RecursiveHermitePtr_t;
     } // namespace pathProjector
 
     namespace problemTarget {

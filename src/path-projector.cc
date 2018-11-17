@@ -83,10 +83,6 @@ namespace hpp {
           "PathProjection/MinimalDist",
           "The threshold which stops the projection (distance between consecutive interpolation points.)",
           Parameter(1e-3)));
-    Problem::declareParameter(ParameterDescription (Parameter::FLOAT,
-          "PathProjection/RecursiveHermite/Beta",
-          "See \"Fast Interpolation and Time-Optimization on Implicit Contact Submanifolds\" from Kris Hauser.",
-          Parameter(0.9)));
     HPP_END_PARAMETER_DECLARATION(pathProjection)
   } // namespace core
 } // namespace hpp

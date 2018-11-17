@@ -52,11 +52,11 @@
 #include <hpp/core/path-projector/global.hh>
 #include <hpp/core/path-projector/dichotomy.hh>
 #include <hpp/core/path-projector/progressive.hh>
-#include <hpp/core/path-projector/recursive-hermite.hh>
 #include <hpp/core/path-optimization/spline-gradient-based.hh>
 #include <hpp/core/path-optimization/partial-shortcut.hh>
 #include <hpp/core/path-optimization/config-optimization.hh>
 #include <hpp/core/path-optimization/simple-time-parameterization.hh>
+#include <hpp/core/path-optimization/recursive-hermite.hh>
 #include <hpp/core/path-validation-report.hh>
 // #include <hpp/core/problem-target/task-target.hh>
 #include <hpp/core/problem-target/goal-configurations.hh>
@@ -215,6 +215,7 @@ namespace hpp {
       pathOptimizers.add ("SplineGradientBased_bezier1",pathOptimization::SplineGradientBased<path::BernsteinBasis, 1>::create);
       // pathOptimizers.add ("SplineGradientBased_bezier2",pathOptimization::SplineGradientBased<path::BernsteinBasis, 2>::create);
       pathOptimizers.add ("SplineGradientBased_bezier3",pathOptimization::SplineGradientBased<path::BernsteinBasis, 3>::create);
+      pathOptimizers.add ("RecursiveHermite", pathOptimization::RecursiveHermite::createFromParameters);
 
       // Store path validation methods in map.
       pathValidations.add ("Discretized", DiscretizedCollisionChecking::create);
@@ -234,7 +235,6 @@ namespace hpp {
       pathProjectors.add ("Progressive",      FactoryPP<pathProjector::Progressive>::create);
       pathProjectors.add ("Dichotomy",        FactoryPP<pathProjector::Dichotomy>::create);
       pathProjectors.add ("Global",           FactoryPP<pathProjector::Global>::create);
-      pathProjectors.add ("RecursiveHermite", FactoryPP<pathProjector::RecursiveHermite>::create);
     }
 
     ProblemSolver::~ProblemSolver ()

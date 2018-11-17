@@ -14,7 +14,7 @@
 // received a copy of the GNU Lesser General Public License along with
 // hpp-core. If not, see <http://www.gnu.org/licenses/>.
 
-#include "hpp/core/path-projector/recursive-hermite.hh"
+#include "hpp/core/path-optimization/recursive-hermite.hh"
 
 #include <hpp/util/timer.hh>
 
@@ -30,7 +30,7 @@
 
 namespace hpp {
   namespace core {
-    namespace pathProjector {
+    namespace pathOptimizer {
       RecursiveHermitePtr_t RecursiveHermite::create (const DistancePtr_t& distance,
           const SteeringMethodPtr_t& steeringMethod, value_type step)
       {
@@ -50,7 +50,7 @@ namespace hpp {
       RecursiveHermite::RecursiveHermite (const DistancePtr_t& distance,
 				const SteeringMethodPtr_t& steeringMethod,
 				const value_type& M, const value_type& beta) :
-        PathProjector (distance, steeringMethod, false), M_ (M),
+        PathOptimizer (distance, steeringMethod, false), M_ (M),
         beta_ (beta)
       {
         // beta should be between 0.5 and 1.
@@ -249,6 +249,6 @@ namespace hpp {
           return true;
         }
       }
-    } // namespace pathProjector
+    } // namespace pathOptimizer
   } // namespace core
 } // namespace hpp
