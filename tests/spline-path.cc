@@ -268,8 +268,19 @@ BOOST_AUTO_TEST_CASE (composite_bezier_3)
   BOOST_CHECK_CLOSE(v1[0], v2[0], tol);
 
   q1 << -0.5;
+  std::cout << path->controlPoints() << std::endl;
+  const std::vector<value_type>& params = path->params();
+  for (std::size_t i = 0; i < params.size(); ++i)
+    std::cout << params[i] << ", ";
+  std::cout << std::endl;
+
   size_type idx = path->insert (0.5, q1);
   BOOST_CHECK_EQUAL(idx, 1);
+  std::cout << path->controlPoints() << std::endl;
+  //std::copy(path->params().begin(), path->params().end(), std::ostream_iterator<char>(std::cout, ", "));
+  for (std::size_t i = 0; i < params.size(); ++i)
+    std::cout << params[i] << ", ";
+  std::cout << std::endl;
 
   path->velocityAtControlPoint(0, v1);
   path->velocityAtControlPoint(2, v1);

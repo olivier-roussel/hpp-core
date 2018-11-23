@@ -414,6 +414,27 @@ namespace hpp {
           // in the velocity calculation.
           if (proj && proj->dimension() > 0)
             thr = 2 * proj->errorThreshold() / M_;
+
+          /*
+          PathVectorPtr_t tmpRes = PathVector::create
+            (input->outputSize (), input->outputDerivativeSize ());
+
+          const interval_t& tr = paths[i]->timeRange();
+          size_type mi = maxIter;
+          hppDout (info, "Threshold: " << thr);
+          while (!recurse (paths[i], tr.first, tr.second, hermites[i], tmpRes, thr))
+          {
+            tmpRes = PathVector::create
+              (input->outputSize (), input->outputDerivativeSize ());
+            if (thr == infty) thr = 2 * errThr / M_;
+            else thr /= 2;
+            hppDout (info, "Threshold: " << thr);
+            mi--;
+            if (mi == 0)
+              throw std::runtime_error ("Threshold becomes too low");
+          }
+          res->concatenate(tmpRes);
+          */
           if (projectMethod==1)
             res->appendPath(project (problem(), paths[i], thr));
           else if (projectMethod==2)
@@ -425,6 +446,106 @@ namespace hpp {
         HPP_DISPLAY_TIMECOUNTER(validation);
 	return res;
       }
+
+        /*
+      bool RecursiveHermite::project (const PathPtr_t& path, PathPtr_t& proj) const
+      {
+        ConstraintSetPtr_t constraints = path->constraints ();
+	if (!constraints) {
+	  proj = path;
+	  return true;
+	}
+        const Configuration_t q1 = path->initial ();
+        const Configuration_t q2 = path->end ();
+        if (!constraints->isSatisfied (q2)) return false;
+        const ConfigProjectorPtr_t& cp = constraints->configProjector ();
+        if (!cp || cp->dimension() == 0) {
+          proj = path;
+          return true;
+        }
+
+        steeringMethod_->constraints(constraints);
+
+        const value_type thr = 2 * cp->errorThreshold() / M_;
+
+        std::vector<HermitePtr_t> ps;
+        HermitePtr_t p = HPP_DYNAMIC_PTR_CAST (Hermite, path);
+        if (!p) {
+          InterpolatedPathPtr_t ip = HPP_DYNAMIC_PTR_CAST(InterpolatedPath, path);
+          if (ip) {
+            typedef InterpolatedPath::InterpolationPoints_t IPs_t;
+            const IPs_t& ips = ip->interpolationPoints();
+            ps.reserve(ips.size() - 1);
+            IPs_t::const_iterator _ip1 = ips.begin(); std::advance (_ip1, 1);
+            for (IPs_t::const_iterator _ip0 = ips.begin();
+                _ip1 != ips.end(); ++_ip0) {
+              ps.push_back (HPP_DYNAMIC_PTR_CAST(Hermite,
+                    steer (_ip0->second, _ip1->second)));
+              ++_ip1;
+            }
+          } else {
+            p = HPP_DYNAMIC_PTR_CAST(Hermite, steer (path->initial(), path->end()));
+            ps.push_back (p);
+          }
+        } else {
+          ps.push_back (p);
+        }
+        PathVectorPtr_t res = PathVector::create (path->outputSize(),
+                                                  path->outputDerivativeSize());
+        bool success = true;
+        for (std::size_t i = 0; i < ps.size(); ++i) {
+          p = ps[i];
+          p->computeHermiteLength();
+          if (p->hermiteLength() < thr) {
+            res->appendPath (p);
+            continue;
+          }
+          PathVectorPtr_t r = PathVector::create (path->outputSize(),
+                                                  path->outputDerivativeSize());
+          std::cout << p->hermiteLength() 
+            << " / " << thr
+            << " : " << 
+            path->constraints()->name() << std::endl;
+          success = recurse (p, r, thr);
+          res->concatenate (r);
+          if (!success) break;
+        }
+#if HPP_ENABLE_BENCHMARK
+        value_type min = std::numeric_limits<value_type>::max(), max = 0, totalLength = 0;
+        const size_t nbPaths = res->numberPaths();
+        for (std::size_t i = 0; i < nbPaths; ++i) {
+          PathPtr_t curP = res->pathAtRank(i);
+          const value_type l = d(curP->initial(), curP->end());
+          if (l < min) min = l;
+          else if (l > max) max = l;
+          totalLength += l;
+        }
+        hppBenchmark("Hermite path: "
+            << nbPaths
+            << ", [ " << min
+            <<   ", " << (nbPaths == 0 ? 0 : totalLength / (value_type)nbPaths)
+            <<   ", " << max << "]"
+            );
+#endif
+        if (success) {
+          proj = res;
+          return true;
+        }
+        const value_type tmin = path->timeRange().first;
+        switch (res->numberPaths()) {
+          case 0:
+            proj = path->extract (std::make_pair (tmin, tmin));
+            break;
+          case 1:
+            proj = res->pathAtRank(0);
+            break;
+          default:
+            proj = res;
+            break;
+        }
+        return false;
+      }
+      */
 
       bool RecursiveHermite::recurse (const PathPtr_t input,
           const value_type& t0, const value_type& t1,
@@ -443,6 +564,8 @@ namespace hpp {
             proj->appendPath(path);
             return true;
           }
+          hppDout (info, "RHP in collision: (" << t0 << ',' << t1 << ") "
+              << *report);
           return false;
         }
 
@@ -465,6 +588,25 @@ namespace hpp {
         HermitePtr_t left  = sm_->steer (q0, q1, path->v0(), vHalf, t - t0);
         HermitePtr_t right = sm_->steer (q1, q2, vHalf, path->v1(), t1 - t);
 
+        // const value_type stopThr = beta_ * path->hermiteLength();
+        // bool lStop = ( left ->hermiteLength() < stopThr );
+        // bool rStop = ( right->hermiteLength() < stopThr );
+        // bool stop = rStop && lStop;
+        // // This is the inverse of the condition in the RSS paper. Is there a typo in the paper ?
+        // if (std::max (left->hermiteLength(), right->hermiteLength()) > beta * path->hermiteLength()) {
+        // if (stop) {
+        //   hppDout (info, "RHP stopped: " << path->hermiteLength() << " * " << beta_ << " -> " <<
+        //       left->hermiteLength() << " / " << right->hermiteLength());
+        // }
+        // if (lStop || !recurse (input, t0, t, left , proj, acceptThr)) return false;
+        // if ( stop || !recurse (input, t, t1, right, proj, acceptThr)) return false;
+        // hppDout (info, "RHP split: " << setpyformat
+        //     << "\nq0=" << one_line (q0)
+        //     << "\nq1=" << one_line (q1)
+        //     << "\nq2=" << one_line (q2) << unsetpyformat);
+        hppDout (info, "RHP split: (" << t0 << ',' << t1 << ") " <<
+            path->hermiteLength() << " -> " <<
+            left->hermiteLength() << " / " << right->hermiteLength());
         if (!recurse (input, t0, t, left , proj, acceptThr)) return false;
         if (!recurse (input, t, t1, right, proj, acceptThr)) return false;
 
