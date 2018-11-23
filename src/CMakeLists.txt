@@ -67,6 +67,7 @@ path-validations.cc
   path-vector.cc #
   path/spline.cc
   path/hermite.cc
+  path/composite-bezier.cc
   plan-and-optimize.cc #
   problem.cc # TODO : addObstacle
   problem-solver.cc # TODO : addObstacle

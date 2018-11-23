@@ -18,6 +18,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <hpp/core/path/spline.hh>
+#include <hpp/core/path/composite-bezier.hh>
 
 #include <pinocchio/algorithm/joint-configuration.hpp>
 
@@ -200,4 +201,81 @@ BOOST_AUTO_TEST_CASE (spline_bernstein)
 BOOST_AUTO_TEST_CASE (spline_bernstein_velocity)
 {
   check_velocity_bounds<path::BernsteinBasis, 3>();
+}
+
+BOOST_AUTO_TEST_CASE (composite_bezier_1)
+{
+  typedef path::CompositeBezier<1> CompositeBezier;
+  typedef typename CompositeBezier::Ptr_t CompositeBezierPtr_t;
+
+  const size_type N = 1;
+  LiegroupSpacePtr_t space = LiegroupSpace::Rn(N);
+  Configuration_t q1 (N), q2 (N);
+  vector_t v (N);
+  q1 << 0;
+  q2 << 1;
+  CompositeBezierPtr_t path = CompositeBezier::create (space, q1, q2, 1);
+
+  (*path) (q1, 0.5);
+  BOOST_CHECK_EQUAL(q1[0], 0.5);
+
+  path->derivative (v, 0.5, 1);
+  BOOST_CHECK_EQUAL(v[0], 1);
+}
+
+BOOST_AUTO_TEST_CASE (composite_bezier_3)
+{
+  typedef path::CompositeBezier<3> CompositeBezier;
+  typedef typename CompositeBezier::Ptr_t CompositeBezierPtr_t;
+
+  const size_type N = 1;
+  LiegroupSpacePtr_t space = LiegroupSpace::Rn(N);
+  Configuration_t q1 (N), q2 (N);
+  vector_t v1 (N), v2 (N);
+  q1 << 0;
+  q2 << 1;
+  // Path (t) = t*t*(3-2*t)
+  // Path' (t) = 6*t*(1-t)
+  CompositeBezierPtr_t path = CompositeBezier::create (space, q1, q2, 1);
+
+  matrix_t controlPoints (N, 4);
+  controlPoints << 0, 0, 1, 1;
+  BOOST_CHECK_EQUAL (controlPoints, path->controlPoints());
+
+  (*path) (q1, 0.5);
+  BOOST_CHECK_EQUAL(q1[0], 0.5);
+
+  value_type t = 0;
+  path->derivative (v1, t, 1);
+  BOOST_CHECK_EQUAL(v1[0], 6*t*(1-t));
+
+  t = 0.5;
+  path->derivative (v1, t, 1);
+  BOOST_CHECK_EQUAL(v1[0], 6*t*(1-t));
+
+  t = 1;
+  path->derivative (v1, t, 1);
+  BOOST_CHECK_EQUAL(v1[0], 6*t*(1-t));
+
+  v1 << 0.25;
+  path->velocityAtControlPoint(0, v1);
+  path->velocityAtControlPoint(1, v1);
+
+  const value_type tol = 1e-4;
+  path->derivative (v2, 0, 1);
+  BOOST_CHECK_CLOSE(v1[0], v2[0], tol);
+  path->derivative (v2, 1, 1);
+  BOOST_CHECK_CLOSE(v1[0], v2[0], tol);
+
+  q1 << -0.5;
+  size_type idx = path->insert (0.5, q1);
+  BOOST_CHECK_EQUAL(idx, 1);
+
+  path->velocityAtControlPoint(0, v1);
+  path->velocityAtControlPoint(2, v1);
+
+  path->derivative (v2, 0, 1);
+  BOOST_CHECK_CLOSE(v1[0], v2[0], tol);
+  path->derivative (v2, 1, 1);
+  BOOST_CHECK_CLOSE(v1[0], v2[0], tol);
 }

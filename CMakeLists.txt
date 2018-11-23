@@ -107,6 +107,7 @@ SET(${PROJECT_NAME}_HEADERS
   include/hpp/core/path-vector.hh
   include/hpp/core/path/spline.hh
   include/hpp/core/path/hermite.hh
+  include/hpp/core/path/composite-bezier.hh
   include/hpp/core/reeds-shepp-path.hh
   include/hpp/core/plan-and-optimize.hh
   include/hpp/core/problem.hh
