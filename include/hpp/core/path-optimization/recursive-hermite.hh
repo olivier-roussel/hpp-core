@@ -45,8 +45,6 @@ namespace hpp {
           RecursiveHermite (const Problem& problem,
               const value_type& M, const value_type& beta);
 
-          bool project (const PathPtr_t& path, PathPtr_t& proj) const;
-
         private:
           bool recurse (const PathPtr_t input,
               const value_type& t0, const value_type& t1,
