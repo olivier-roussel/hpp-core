@@ -94,8 +94,7 @@ namespace hpp {
 
       void Hermite::computeHermiteLength ()
       {
-        //hermiteLength_ = (parameters_.bottomRows<3>() - parameters_.topRows<3>()).rowwise().norm().sum();
-        hermiteLength_ = squaredNormIntegral(1);
+        hermiteLength_ = (parameters_.bottomRows<3>() - parameters_.topRows<3>()).rowwise().norm().sum();
       }
 
       vector_t Hermite::velocity (const value_type& param) const
