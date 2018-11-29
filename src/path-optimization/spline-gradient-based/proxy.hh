@@ -40,21 +40,51 @@ namespace hpp {
           typedef boost::shared_ptr<ProxyFunction> Ptr_t;
           typedef path::Spline<_PolynomeBasis, _SplineOrder> Spline;
 
+          /// Constructor with no right hand side
           /// \param base spline base
           /// \param u ratio at which this function applies.
           /// \param T length of the spline. (May be one day this will be an optimization variable.)
           ProxyFunction (const DifferentiableFunctionPtr_t& inner,
               const LiegroupElement& ba_i,
               const value_type& u,
-              const value_type& T_i) :
+              const value_type& T_i,
+              const pinocchio::ArrayXb& rhs) :
             DifferentiableFunction (
-                inner->inputDerivativeSize()*Spline::NbCoeffs,
-                inner->inputDerivativeSize()*Spline::NbCoeffs,
+                (rhs.count() + inner->inputDerivativeSize())*Spline::NbCoeffs,
+                (rhs.count() + inner->inputDerivativeSize())*Spline::NbCoeffs,
                 inner->outputSpace(), "Proxy on " + inner->name()),
             inner_ (inner),
             ba_i_ (ba_i),
             u_ (u),
             T_i_ (T_i),
+            rhs_ (rhs),
+            Nr_ (rhs.count()                 *Spline::NbCoeffs),
+            Ni_ (inner->inputDerivativeSize()*Spline::NbCoeffs),
+            bfv_ (computeBFV(u_))
+          {
+            activeParameters_          .setConstant(true);
+            activeDerivativeParameters_.setConstant(true);
+          }
+
+          /// Constructor with a right hand side
+          ProxyFunction (const DifferentiableFunctionPtr_t& inner,
+              const LiegroupElement& ba_i,
+              const value_type& u,
+              const value_type& T_i,
+              const DifferentiableFunctionPtr_t& rhs,
+              const segment_t& innerIn,
+              const segment_t& rhsIn) :
+            DifferentiableFunction (
+                (rhs.count() + inner->inputDerivativeSize())*Spline::NbCoeffs,
+                (rhs.count() + inner->inputDerivativeSize())*Spline::NbCoeffs,
+                inner->outputSpace(), "Proxy on " + inner->name()),
+            inner_ (inner),
+            ba_i_ (ba_i),
+            u_ (u),
+            T_i_ (T_i),
+            rhs_ (rhs),
+            Nr_ (rhs.count()                 *Spline::NbCoeffs),
+            Ni_ (inner->inputDerivativeSize()*Spline::NbCoeffs),
             bfv_ (computeBFV(u_))
           {
             activeParameters_          .setConstant(true);
@@ -78,8 +108,11 @@ namespace hpp {
           void impl_compute (LiegroupElement& y, vectorIn_t parameters) const
           {
             Configuration_t q;
-            spline (parameters, q);
+            spline (parameters.segment(inner_.first,inner_.second), q);
             inner_->value(y, q);
+
+            if (rhs_) {
+            }
           }
 
           void impl_jacobian (matrixOut_t J, vectorIn_t parameters) const
@@ -124,9 +157,16 @@ namespace hpp {
           LiegroupElement ba_i_;
           const value_type u_, T_i_;
 
+          DifferentiableFunctionPtr_t rhs_;
+          const segment_t innerIn_, rhsIn_;
+
           const Spline::BasisFunctionVector_t bfv_;
       }; // class ProxyFunction
 
+      class ProxiedFunction :
+        public constraints::DifferentiableFunction
+      {
+      };
     } // namespace pathOptimization
   } // namespace core
 } // namespace hpp
