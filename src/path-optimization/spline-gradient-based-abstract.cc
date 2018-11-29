@@ -16,6 +16,10 @@
 
 #include <hpp/core/path-optimization/spline-gradient-based-abstract.hh>
 
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
 #include <hpp/util/exception-factory.hh>
 #include <hpp/util/timer.hh>
 
@@ -193,6 +197,11 @@ namespace hpp {
       void SplineGradientBasedAbstract<_PB, _SO>::initializePathValidation
       (const Splines_t& splines)
       {
+#ifdef _OPENMP
+        int Nthreads = (int)problem().getParameter ("SplineGradientBased/numThreads").intValue();
+        if (Nthreads < 0) throw std::invalid_argument ("SplineGradientBased/numThreads should be a positive integer");
+        omp_set_num_threads (Nthreads);
+#endif
         validations_.resize(splines.size());
         for (std::size_t i = 0; i < splines.size(); ++i) {
           validations_[i] = problem ().pathValidation();
@@ -208,25 +217,40 @@ namespace hpp {
        bool reorder) const
       {
         assert (validations_.size() == splines.size());
-        HPP_SCOPE_TIMECOUNTER(SGB_validatePath);
-	PathPtr_t validPart;
-	PathValidationReportPtr_t report;
-	Reports_t reports;
         assert(reordering.size() == splines.size());
-#ifndef NDEBUG
-        std::vector<bool> check_ordering (reordering.size(), false);
-#endif
+        HPP_SCOPE_TIMECOUNTER(SGB_validatePath);
+	Reports_t reports;
+        volatile bool stop = false;
+#pragma omp parallel for schedule (static, 1) shared (stop)
         for (std::size_t j = 0; j < splines.size(); ++j) {
+          if (stop) continue;
           const std::size_t& i = reordering[j];
 #ifndef NDEBUG
           assert(!check_ordering[i]);
           check_ordering[i] = true;
 #endif
-	  if (!validations_[i]->validate (splines[i], false, validPart, report)) {
-	    reports.push_back (std::make_pair (report, i));
-            if (stopAtFirst) break;
+          PathPtr_t validPart;
+          PathValidationReportPtr_t report;
+          bool valid = validations_[i]->validate (splines[i], false, validPart, report);
+	  if (!valid) {
+#pragma omp critical
+            {
+              if (stopAtFirst) {
+                stop = true;
+                if (reports.empty()) {
+	          reports.push_back (std::make_pair (report, j));
+                } else if (reports[0].second > j) {
+                  reports[0].first = report;
+                  reports[0].second = j;
+                }
+              } else {
+                reports.push_back (std::make_pair (report, j));
+              }
+            }
 	  }
 	}
+        for (std::size_t i = 0; i < reports.size(); ++i)
+          reports[i].second = reordering[reports[i].second];
         if (reorder && !reports.empty()) {
           const std::size_t k = reports.front().second;
           // Set reordering to [ k, ..., n-1, 0, ..., k-1]
@@ -489,6 +513,19 @@ namespace hpp {
       template class SplineGradientBasedAbstract<path::BernsteinBasis, 1>; // equivalent to StraightPath
       // template class SplineGradientBased<path::BernsteinBasis, 2>;
       template class SplineGradientBasedAbstract<path::BernsteinBasis, 3>;
+
+      // ----------- Declare parameters ------------------------------------- //
+
+      HPP_START_PARAMETER_DECLARATION(SplineGradientBasedAbstract)
+      Problem::declareParameter(ParameterDescription (Parameter::INT,
+            "SplineGradientBased/numThreads",
+#ifdef _OPENMP
+            "Set the number of threads used for collision checking.",
+#else
+            "Unused because hpp-core was not compiled with OpenMP.",
+#endif
+            Parameter((size_type)1)));
+      HPP_END_PARAMETER_DECLARATION(SplineGradientBasedAbstract)
     } // namespace pathOptimization
   }  // namespace core
 } // namespace hpp
