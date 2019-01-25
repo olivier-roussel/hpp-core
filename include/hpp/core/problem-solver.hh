@@ -28,6 +28,7 @@
 # include <hpp/core/config.hh>
 # include <hpp/core/deprecated.hh>
 # include <hpp/core/container.hh>
+# include <hpp/core/command.hh>
 
 namespace hpp {
   namespace core {
@@ -53,6 +54,7 @@ namespace hpp {
       SteeringMethodBuilder_t;
     typedef std::vector<std::pair < std::string, CollisionObjectPtr_t > > AffordanceObjects_t;
     typedef vector3_t AffordanceConfig_t;
+    typedef boost::shared_ptr<Command> CommandPtr_t;
 
     /// Set and solve a path planning problem
     ///
@@ -581,6 +583,8 @@ namespace hpp {
       Container <AffordanceObjects_t>           affordanceObjects;
       /// Container of AffordanceConfig_t
       Container <AffordanceConfig_t>            affordanceConfigs;
+      /// Container of Command
+      Container <CommandPtr_t>                  commands;
 
     protected:
       /// Constructor

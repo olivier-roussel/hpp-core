@@ -45,6 +45,7 @@ SETUP_HPP_PROJECT()
 SET(${PROJECT_NAME}_HEADERS
   include/hpp/core/basic-configuration-shooter.hh # DEPRECATED
   include/hpp/core/bi-rrt-planner.hh
+  include/hpp/core/command.hh
   include/hpp/core/collision-path-validation-report.hh
   include/hpp/core/collision-validation.hh
   include/hpp/core/relative-motion.hh

@@ -23,6 +23,7 @@ SET(${LIBRARY_NAME}_SOURCES
 astar.hh
 bi-rrt-planner.cc
 collision-validation.cc
+command.cc
 configuration-shooter/uniform.cc
 configuration-shooter/gaussian.cc
 config-projector.cc
