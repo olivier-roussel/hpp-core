@@ -71,6 +71,7 @@
 #include <hpp/core/steering-method/straight.hh>
 #include <hpp/core/visibility-prm-planner.hh>
 #include <hpp/core/weighed-distance.hh>
+#include <../src/weighed-distance/commands.hh>
 #include <hpp/core/collision-validation.hh>
 #include <hpp/core/joint-bound-validation.hh>
 #include <hpp/core/kinodynamic-distance.hh>
@@ -257,6 +258,9 @@ namespace hpp {
       pathProjectors.add ("Dichotomy",        FactoryPP<pathProjector::Dichotomy>::create);
       pathProjectors.add ("Global",           FactoryPP<pathProjector::Global>::create);
       pathProjectors.add ("RecursiveHermite", FactoryPP<pathProjector::RecursiveHermite>::create);
+
+      commands.add ("weighedDistanceGetWeights", CommandPtr_t(new distance::GetWeights ()));
+      commands.add ("weighedDistanceSetWeights", CommandPtr_t(new distance::SetWeights ()));
     }
 
     ProblemSolver::~ProblemSolver ()

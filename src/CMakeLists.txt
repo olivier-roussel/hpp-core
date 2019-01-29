@@ -97,6 +97,7 @@ path-validation/discretized-joint-bound.cc
   interpolated-path.cc
   visibility-prm-planner.cc
   weighed-distance.cc
+  weighed-distance/commands.cc
   kinodynamic-distance.cc
   path-projector/progressive.cc
   path-projector/dichotomy.cc
