@@ -124,6 +124,7 @@ INSTALL(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 ADD_LIBRARY(${LIBRARY_NAME}-gpl
   SHARED
   path-optimization/quadratic-program.cc
+  path-optimization/spline-gradient-based/eiquadprog-fast.cpp
   path-optimization/spline-gradient-based.cc)
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} hpp-pinocchio)
 PKG_CONFIG_USE_DEPENDENCY(${LIBRARY_NAME} hpp-util)

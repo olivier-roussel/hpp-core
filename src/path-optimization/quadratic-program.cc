@@ -18,12 +18,7 @@
 
 #include <hpp/util/timer.hh>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#include <path-optimization/spline-gradient-based/eiquadprog_2011.hpp>
-#pragma GCC diagnostic pop
+#include <path-optimization/spline-gradient-based/eiquadprog-fast.hpp>
 
 namespace hpp {
   namespace core {
@@ -34,11 +29,17 @@ namespace hpp {
       HPP_DEFINE_TIMECOUNTER(QuadraticProgram_computeLLT);
       HPP_DEFINE_TIMECOUNTER(QuadraticProgram_solve_quadprog);
 
+      void QuadraticProgram::initQuadProg ()
+      {
+        quadprog_ = new EiquadprogFast ();
+      }
+
       QuadraticProgram::~QuadraticProgram ()
       {
         HPP_DISPLAY_TIMECOUNTER(QuadraticProgram_decompose);
         HPP_DISPLAY_TIMECOUNTER(QuadraticProgram_computeLLT);
         HPP_DISPLAY_TIMECOUNTER(QuadraticProgram_solve_quadprog);
+        if (quadprog_) delete quadprog_;
       }
 
       void QuadraticProgram::decompose ()
@@ -58,24 +59,37 @@ namespace hpp {
       double QuadraticProgram::solve(const LinearConstraint& ce, const LinearConstraint& ci)
       {
         HPP_SCOPE_TIMECOUNTER(QuadraticProgram_solve_quadprog);
+
+        quadprog_->m_J.setIdentity(H.rows(), H.rows());
+        llt.matrixU().solveInPlace(quadprog_->m_J);
+        quadprog_->is_inverse_provided_ = true;
+
         // min   0.5 * x G x + g0 x
         // s.t.  CE^T x + ce0 = 0
         //       CI^T x + ci0 >= 0
-        Eigen::QuadProgStatus status;
-        double cost = solve_quadprog2 (llt, trace, b,
+        EiquadprogFast_status status = quadprog_->solve_quadprog (
+            H, b,
             ce.J.transpose(), - ce.b,
             ci.J.transpose(), - ci.b,
-            xStar, activeConstraint, activeSetSize, status);
+            xStar);
+        activeSetSize = (int)quadprog_->getActiveSetSize ();
+        activeConstraint = quadprog_->getActiveSet ();
         switch (status) {
-          case Eigen::UNBOUNDED:
+          case EIQUADPROG_FAST_UNBOUNDED:
             hppDout (warning, "Quadratic problem is not bounded");
-          case Eigen::CONVERGED:
+          case EIQUADPROG_FAST_OPTIMAL:
             break;
-          case Eigen::CONSTRAINT_LINEARLY_DEPENDENT:
+          case EIQUADPROG_FAST_INFEASIBLE:
+            hppDout (error, "Quadratic problem is not feasible");
+            break;
+          case EIQUADPROG_FAST_MAX_ITER_REACHED:
+            hppDout (error, "Quadratic problem resolution reached the maximum number of iterations.");
+            break;
+          case EIQUADPROG_FAST_REDUNDANT_EQUALITIES:
             hppDout (error, "Constraint of quadratic problem are linearly dependent.");
             break;
         }
-        return cost;
+        return quadprog_->getObjValue();
       }
     } // namespace pathOptimization
   }  // namespace core

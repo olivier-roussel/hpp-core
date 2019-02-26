@@ -21,6 +21,8 @@
 
 #include <hpp/core/path-optimization/linear-constraint.hh>
 
+class EiquadprogFast;
+
 namespace hpp {
   namespace core {
     /// \addtogroup path_optimization
@@ -55,25 +57,29 @@ namespace hpp {
         QuadraticProgram (size_type inputSize) :
           H (inputSize, inputSize), b (inputSize),
           dec (inputSize, inputSize, Eigen::ComputeThinU | Eigen::ComputeThinV),
-          xStar (inputSize)
+          xStar (inputSize), quadprog_ (NULL)
         {
           H.setZero();
           b.setZero();
           bIsZero = true;
+          initQuadProg();
         }
 
         QuadraticProgram (const QuadraticProgram& QP, const LinearConstraint& lc) :
           H (lc.PK.cols(), lc.PK.cols()), b (lc.PK.cols()), bIsZero (false),
           dec (lc.PK.cols(), lc.PK.cols(), Eigen::ComputeThinU | Eigen::ComputeThinV),
-          xStar (lc.PK.cols())
+          xStar (lc.PK.cols()), quadprog_ (NULL)
         {
           QP.reduced (lc, *this);
+          initQuadProg();
         }
 
         QuadraticProgram (const QuadraticProgram& QP) :
           H (QP.H), b (QP.b), bIsZero (QP.bIsZero),
-          dec (QP.dec), xStar (QP.xStar)
-        {}
+          dec (QP.dec), xStar (QP.xStar), quadprog_ (NULL)
+        {
+          initQuadProg();
+        }
 
         ~QuadraticProgram ();
 
@@ -147,6 +153,10 @@ namespace hpp {
         Decomposition_t dec;
         vector_t xStar;
         /// \}
+
+        private:
+        void initQuadProg ();
+        EiquadprogFast *quadprog_;
       };
     } // namespace pathOptimization
   }  // namespace core
