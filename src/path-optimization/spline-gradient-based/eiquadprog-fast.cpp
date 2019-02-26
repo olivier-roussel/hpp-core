@@ -55,11 +55,13 @@
 			       Index nEqCon,
 			       Index nIneqCon)
     {
-      m_nVars = nVars;
+      if (m_nVars != nVars) {
+        m_nVars = nVars;
+        m_J.setZero(nVars, nVars);
+        chol_.compute(m_J);
+      }
       m_nEqCon = nEqCon;
       m_nIneqCon = nIneqCon;
-      m_J.setZero(nVars, nVars);
-      chol_.compute(m_J);
       R.resize(nVars, nVars);
       s.resize(nIneqCon);
       r.resize(nIneqCon+nEqCon);
