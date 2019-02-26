@@ -15,14 +15,9 @@
 // <http://www.gnu.org/licenses/>.
 //
 
-#include "tsid/solvers/eiquadprog-fast.hpp"
-#include "tsid/utils/stop-watch.hpp"
+#include <cmath>
+#include "eiquadprog-fast.hpp"
  
-namespace tsid
-{
-  namespace solvers
-  {
-
     /// Compute sqrt(a^2 + b^2)
     template<typename Scalar>
     inline Scalar distance(Scalar a, Scalar b)
@@ -56,9 +51,9 @@ namespace tsid
 
     EiquadprogFast::~EiquadprogFast() {}
 
-    void EiquadprogFast::reset(math::Index nVars,
-			       math::Index nEqCon,
-			       math::Index nIneqCon)
+    void EiquadprogFast::reset(Index nVars,
+			       Index nEqCon,
+			       Index nIneqCon)
     {
       m_nVars = nVars;
       m_nEqCon = nEqCon;
@@ -88,14 +83,14 @@ namespace tsid
     bool EiquadprogFast::add_constraint(MatrixXd & R,
                                         MatrixXd & J,
                                         VectorXd & d,
-                                        math::Index& iq,
+                                        Index& iq,
                                         double& R_norm)
     {
-      math::Index nVars = J.rows();
+      Index nVars = J.rows();
 #ifdef TRACE_SOLVER
       std::cerr << "Add constraint " << iq << '/';
 #endif
-      math::Index j, k;
+      Index j, k;
       double cc, ss, h, t1, t2, xny;
 
 #ifdef OPTIMIZE_ADD_CONSTRAINT
@@ -173,17 +168,17 @@ namespace tsid
                                            MatrixXd & J,
                                            VectorXi & A,
                                            VectorXd & u,
-                                           math::Index nEqCon,
-                                           math::Index& iq,
-                                           math::Index l)
+                                           Index nEqCon,
+                                           Index& iq,
+                                           Index l)
     {
       
-      math::Index nVars = R.rows();
+      Index nVars = R.rows();
 #ifdef TRACE_SOLVER
       std::cerr << "Delete constraint " << l << ' ' << iq;
 #endif
-      math::Index i, j, k;
-      math::Index qq =0;
+      Index i, j, k;
+      Index qq =0;
       double cc, ss, h, xny, t1, t2;
 
       /* Find the index qq for active constraint l to be removed */
@@ -271,23 +266,23 @@ namespace tsid
                                                          const VectorXd & ci0,
                                                          VectorXd & x)
     {
-      const math::Index nVars = g0.size();
-      const math::Index nEqCon = ce0.size();
-      const math::Index nIneqCon = ci0.size();
+      const Index nVars = g0.size();
+      const Index nEqCon = ce0.size();
+      const Index nIneqCon = ci0.size();
 
       if(nVars!=m_nVars || nEqCon!=m_nEqCon || nIneqCon!=m_nIneqCon)
         reset(nVars, nEqCon, nIneqCon);
 
-      assert(static_cast<math::Index>(Hess.rows())==m_nVars && static_cast<math::Index>(Hess.cols())==m_nVars);
-      assert(static_cast<math::Index>(g0.size())==m_nVars);
-      assert(static_cast<math::Index>(CE.rows())==m_nEqCon && static_cast<math::Index>(CE.cols())==m_nVars);
-      assert(static_cast<math::Index>(ce0.size())==m_nEqCon);
-      assert(static_cast<math::Index>(CI.rows())==m_nIneqCon && static_cast<math::Index>(CI.cols())==m_nVars);
-      assert(static_cast<math::Index>(ci0.size())==m_nIneqCon);
+      assert(static_cast<Index>(Hess.rows())==m_nVars && static_cast<Index>(Hess.cols())==m_nVars);
+      assert(static_cast<Index>(g0.size())==m_nVars);
+      assert(static_cast<Index>(CE.rows())==m_nEqCon && static_cast<Index>(CE.cols())==m_nVars);
+      assert(static_cast<Index>(ce0.size())==m_nEqCon);
+      assert(static_cast<Index>(CI.rows())==m_nIneqCon && static_cast<Index>(CI.cols())==m_nVars);
+      assert(static_cast<Index>(ci0.size())==m_nIneqCon);
 
-      math::Index i, k, l;  // indices
-      math::Index ip;       // index of the chosen violated constraint
-      math::Index iq;       // current number of active constraints
+      Index i, k, l;  // indices
+      Index ip;       // index of the chosen violated constraint
+      Index iq;       // current number of active constraints
       double psi;   // current sum of constraint violations
       double c1;    // Hessian trace
       double c2;    // Hessian Chowlesky factor trace
@@ -705,6 +700,3 @@ l2a:/* Step 2a: determine step direction */
 
       goto l2a;
     }
-    
-  } /* namespace solvers */
-} /* namespace tsid */
