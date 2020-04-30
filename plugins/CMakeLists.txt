@@ -19,3 +19,10 @@ INCLUDE(hpp-core-plugin)
 HPP_ADD_PLUGIN(spline-gradient-based
   SOURCES spline-gradient-based.cc
   LINK_DEPENDENCIES ${PROJECT_NAME} ${PROJECT_NAME}-gpl)
+
+find_package(toppra)
+if(toppra_FOUND)
+  HPP_ADD_PLUGIN(toppra
+    SOURCES toppra
+    LINK_DEPENDENCIES ${PROJECT_NAME} toppra::toppra)
+endif()
