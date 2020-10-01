@@ -70,6 +70,27 @@ namespace hpp {
       interval_t tr = timeRange();
       tr.second += path->length ();
       timeRange (tr);
+
+      // value_type first_local_param;
+      // value_type last_local_param;
+      // const size_t first_rank = rankAtParam (tr.first, first_local_param);
+      // const size_t last_rank = rankAtParam (tr.second, last_local_param);
+      // const auto first_subpath = pathAtRank(first_rank);
+      // const auto last_subpath = pathAtRank(last_rank);
+      // if(first_subpath->timeParameterization() && last_subpath->timeParameterization())
+      // {
+      //   paramRange_.first = first_subpath->timeParameterization()->value(first_local_param);
+      //   paramRange_.second = 0.;
+      //   for(size_t rk = first_rank; rk < last_rank; ++rk)
+      //   {
+      //     paramRange_.second += (pathAtRank(rk)->paramRange().second - pathAtRank(rk)->paramRange().first);
+      //   }
+      //   paramRange_.second += last_subpath->timeParameterization()->value(last_local_param);
+      // }
+      // else
+      // {
+      //   paramRange_ = tr;
+      // }
     }
 
     PathPtr_t PathVector::pathAtRank (std::size_t rank) const

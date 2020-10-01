@@ -316,12 +316,12 @@ namespace hpp {
         } else
           paramRange_ = timeRange_;
       }
-
+public:
       const TimeParameterizationPtr_t& timeParameterization() const
       {
         return timeParam_;
       }
-
+protected:
       value_type paramLength() const
       {
         return paramRange_.second - paramRange_.first;
