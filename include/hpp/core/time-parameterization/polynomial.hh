@@ -57,7 +57,8 @@ namespace hpp {
           /// Computes \f$ \sum_{i=1}^n i a_i t^{i-1} \f$
           value_type derivative (const value_type& t, const size_type& order) const
           {
-            return Jac(t, order);
+            //return Jac(t, order);
+            return derivative(t, order, a);
           }
 
           /// Compute the bound of the derivative on \f$ [ low, up ] \f$.
@@ -71,6 +72,7 @@ namespace hpp {
           ///     - if \f$ low < x_m < up \f$,
           ///       \f$ B = \max{ |a_1 - \frac{a_2}{3 a_3}|, M } \f$
           ///     - else \f$ B = M \f$
+          /*
           value_type derivativeBound (const value_type& low, const value_type& up) const
           {
             using std::max;
@@ -96,6 +98,60 @@ namespace hpp {
                 throw std::logic_error("not implemented");
             }
           }
+          */
+          value_type derivativeBound (const value_type& low, const value_type& up) const
+          {
+            return derivativeBound(low, up, a);
+          }
+
+          static
+          value_type
+          derivative(const value_type& t, const size_type& order, const vector_t& coeffs)
+          {
+            if (order >= coeffs.size()) return 0;
+            const size_type MaxOrder = 10;
+            if (coeffs.size() > MaxOrder)
+              throw std::invalid_argument ("Cannot compute the derivative of order greater than 10.");
+            typedef path::binomials<MaxOrder> Binomials_t;
+            const Binomials_t::Factorials_t& factors = Binomials_t::factorials();
+
+            value_type res = 0;
+            value_type tn = 1;
+            for (size_type i = order; i < coeffs.size(); ++i)
+            {
+              res += value_type(factors[i]/factors[i-order]) * coeffs[i] * tn;
+              tn *= t;
+            }
+            return res;
+          }
+
+          static 
+          value_type
+          derivativeBound(const value_type& low, const value_type& up, const vector_t& coeffs)
+          {
+            using std::max;
+            using std::fabs;
+            switch (coeffs.size()) {
+              case 2:
+                return fabs(coeffs[1]);
+                break;
+              case 3:
+                return max (fabs(derivative(low, 1, coeffs)), fabs(derivative(up, 1, coeffs)));
+                break;
+              case 4:
+                {
+                  const value_type x_m = - coeffs[2] / (3 * coeffs[3]);
+                  const value_type M = max(fabs(derivative(low, 1, coeffs)), fabs(derivative(up, 1, coeffs)));
+                  if (low < x_m && x_m < up)
+                    return max (M, fabs(coeffs[1] - coeffs[2]*coeffs[2] / 3*coeffs[3]));
+                  else
+                    return M;
+                }
+                break;
+              default:
+                throw std::logic_error("not implemented");
+            }
+          }
 
         private:
           value_type val (const value_type& t) const
@@ -111,6 +167,7 @@ namespace hpp {
             return res;
           }
 
+          /*
           value_type Jac (const value_type& t) const
           {
             return Jac(t,1);
@@ -134,6 +191,7 @@ namespace hpp {
             }
             return res;
           }
+          */
 
           vector_t a;
       }; // class Polynomial

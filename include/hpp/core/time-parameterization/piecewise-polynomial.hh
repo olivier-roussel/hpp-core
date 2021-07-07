@@ -23,6 +23,7 @@
 #include <hpp/core/fwd.hh>
 #include <hpp/core/config.hh>
 #include <hpp/core/time-parameterization.hh>
+#include <hpp/core/time-parameterization/polynomial.hh>
 #include <hpp/core/path/math.hh>
 
 namespace hpp {
@@ -88,6 +89,28 @@ namespace hpp {
             return Jac(t, order);
           }
 
+          value_type derivativeBound (const value_type& low, const value_type& up) const override final
+          {
+            using std::max;
+            using std::fabs;
+            const int start_chunk = findPolynomialIndex(low);
+            const int end_chunk = findPolynomialIndex(up); // TODO see TESTME below 
+
+            if(start_chunk == end_chunk)
+            {
+              return Polynomial::derivativeBound(low, up, parameters_.col(start_chunk));
+            }
+            else
+            {
+              value_type res = Polynomial::derivativeBound(low, breakpoints_[start_chunk+1], parameters_.col(start_chunk));
+              for(auto chunk_idx = start_chunk+1; chunk_idx < end_chunk-1; ++chunk_idx)
+              {
+                res = max(res, Polynomial::derivativeBound(breakpoints_[chunk_idx], breakpoints_[chunk_idx+1], parameters_.col(chunk_idx)));
+              }
+              return max(res, Polynomial::derivativeBound(breakpoints_[end_chunk], up, parameters_.col(end_chunk)));
+            }
+          }
+
         private:
           value_type val (const value_type& t) const
           {
@@ -111,6 +134,11 @@ namespace hpp {
 
           value_type Jac (const value_type& t, const size_type& order) const
           {
+            return Jac(t, order, findPolynomialIndex(t));
+          }
+
+          value_type Jac (const value_type& t, const size_type& order, size_t chunk_index) const
+          {
             if (order >= parameters_.rows()) return 0;
             const size_type MaxOrder = 10;
             if (parameters_.rows() > MaxOrder)
@@ -118,8 +146,7 @@ namespace hpp {
             typedef path::binomials<MaxOrder> Binomials_t;
             const Binomials_t::Factorials_t& factors = Binomials_t::factorials();
 
-            const size_t seg_index = findPolynomialIndex(t);
-            const auto& poly_coeffs = parameters_.col(seg_index);
+            const auto& poly_coeffs = parameters_.col(chunk_index);
             
             value_type res = 0;
             value_type tn = 1;
@@ -147,6 +174,33 @@ namespace hpp {
             }
             return seg_index;
           }
+
+          // TESTME
+          /* 
+          size_t findPolynomialIndex(const value_type& t, size_t start_index) const {
+            assert(start_index < parameters_.size());
+
+            size_t chunk_index = std::numeric_limits<size_t>::max();
+            for (int i = start_index; i < parameters_.size(); ++i) {
+              if (breakpoints_[i] <= t && t <= breakpoints_[i + 1]) {
+                chunk_index = i;
+                break;
+              }
+            }
+            if (chunk_index == std::numeric_limits<size_t>::max()) {
+              std::ostringstream oss;
+              oss << "Position " << t << " is outside of range [ " << breakpoints_[0]
+                << ", " << breakpoints_[breakpoints_.size()-1] << ']';
+              throw std::runtime_error(oss.str());
+            }
+            return chunk_index;
+          }
+          */ 
+          /*
+          size_t findPolynomialIndex(const value_type& t) const {
+            return findPolynomialIndex(t, 0);
+            }
+          */
 
           /// Parameters of the polynomials are stored in a matrix
           ///   number of rows = degree of polynomial + 1
